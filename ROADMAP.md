@@ -6,7 +6,7 @@
 
 ## v0.1.0 — Foundation (Current)
 
-**Status: 🔧 In Progress**
+**Status: ✅ Complete (pending E2E test from Copilot)**
 
 - [x] Project scaffold and repository setup
 - [x] Architect Wizard (Atlas) — Qdrant-backed squad designer
@@ -20,9 +20,9 @@
 - [x] i18n — English, Portuguese, Spanish
 - [x] Pre-push security gate (`bin/security_gate.py`)
 - [x] Comprehensive `.gitignore` for public repo safety
-- [ ] GitHub Actions — CI/CD, secret scanning, dependency review
-- [ ] Git pre-push hook auto-install
-- [ ] End-to-end dry-run test
+- [x] GitHub Actions — CI/CD, secret scanning, dependency review
+- [x] Git pre-push hook auto-install
+- [ ] End-to-end dry-run test *(assigned to Copilot — Issue #5)*
 
 ---
 
