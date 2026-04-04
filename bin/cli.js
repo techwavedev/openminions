@@ -360,7 +360,7 @@ async function init(targetDir) {
   }
 }
 
-// ─── Scenarios Command ───────────────────────────────────────────────────────
+// ─── Scenario Command ─────────────────────────────────────────────────────────
 function listScenarios() {
   const scenarios = loadScenarios();
   log.header("Available Scenarios");
@@ -372,6 +372,30 @@ function listScenarios() {
     console.log(`    ${c.dim}Tags: ${scenario.tags.join(", ")}${c.reset}\n`);
   }
 }
+
+async function createScenario(targetDir, intentArg) {
+  const rl = createRL();
+  try {
+    let intent = intentArg;
+    if (!intent) {
+      console.log(`\n  ${c.bold}Create Custom Scenario${c.reset}`);
+      intent = await ask(rl, `  ${t("describeIntent")} `);
+    }
+    
+    console.log(`\n  ${t("teamCreating")}`);
+    try {
+      execSync(
+        `python3 "${path.join(targetDir, "bin", "skill_discovery.py")}" generate-team --intent "${intent.trim()}" --output-dir "${path.join(targetDir, "data", "squads")}"`,
+        { stdio: "inherit" }
+      );
+    } catch (e) {
+      log.err("Failed to create scenario.");
+    }
+  } finally {
+    rl.close();
+  }
+}
+
 
 // ─── Teams Command ───────────────────────────────────────────────────────────
 function listTeams(targetDir) {
@@ -453,6 +477,22 @@ switch (command) {
     listScenarios();
     break;
 
+  case "scenario":
+    if (args[1] === "create") {
+      let intent = null;
+      const intentIdx = args.indexOf("--intent");
+      if (intentIdx !== -1 && intentIdx + 1 < args.length) {
+        intent = args[intentIdx + 1];
+      }
+      createScenario(projectDir, intent).catch((e) => {
+        log.err(e.message);
+        process.exitCode = 1;
+      });
+    } else {
+      listScenarios();
+    }
+    break;
+
   case "teams":
     listTeams(projectDir);
     break;
@@ -472,7 +512,8 @@ switch (command) {
 
   ${c.bold}Usage:${c.reset}
     npx openminions init                       Interactive setup (language, IDE, scenario)
-    npx openminions scenarios                  List available scenarios
+    npx openminions scenarios                  List available predefined scenarios
+    npx openminions scenario create            Interactively build a custom scenario
     npx openminions teams                      List created teams
     npx openminions run --intent "goal" --auto Design + execute a squad
     npx openminions run --squad data/squads/x  Execute existing squad
