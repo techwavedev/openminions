@@ -435,6 +435,58 @@ function listTeams(targetDir) {
   }
 }
 
+function exportTeam(targetDir, teamName, destFile) {
+  if (!teamName) {
+    log.err("Please specify a team name to export. Usage: npx openminions team export <name> [dest]");
+    return;
+  }
+  const squadPath = path.join(targetDir, "data", "squads", teamName, "squad.json");
+  if (!fs.existsSync(squadPath)) {
+    log.err(`Team '${teamName}' not found in data/squads/`);
+    return;
+  }
+  
+  const dest = destFile || `${teamName}.squad.json`;
+  fs.copyFileSync(squadPath, dest);
+  log.ok(`Exported team '${teamName}' to ${dest}`);
+}
+
+function importTeam(targetDir, sourceFile) {
+  if (!sourceFile || !fs.existsSync(sourceFile)) {
+    log.err("Please specify a valid source file to import. Usage: npx openminions team import <file>");
+    return;
+  }
+  try {
+    const content = fs.readFileSync(sourceFile, "utf-8");
+    const data = JSON.parse(content);
+    const squad = data.squad || data;
+    
+    if (!squad.squad_name || !squad.pipeline_sequence) {
+      log.err("Invalid squad file format.");
+      return;
+    }
+    
+    const teamDir = path.join(targetDir, "data", "squads", squad.squad_name);
+    fs.mkdirSync(teamDir, { recursive: true });
+    
+    fs.writeFileSync(path.join(teamDir, "squad.json"), JSON.stringify({ squad }, null, 2), "utf-8");
+    
+    // Also write yaml equivalent for components that prefer it
+    const yamlContent = `squad:
+  code: "${squad.squad_name}"
+  name: "${squad.name || squad.squad_name}"
+  description: "${squad.description || ''}"
+  agents:
+${(squad.roles || []).map(r => `    - "${r.name}"`).join("\n")}
+`;
+    fs.writeFileSync(path.join(teamDir, "squad.yaml"), yamlContent, "utf-8");
+    
+    log.ok(`Imported team '${squad.squad_name}' into data/squads/`);
+  } catch (e) {
+    log.err(`Failed to import team: ${e.message}`);
+  }
+}
+
 // ─── Run Command ─────────────────────────────────────────────────────────────
 function runSquad(targetDir, args) {
   const runnerPath = path.join(targetDir, "bin", "runner.py");
@@ -494,7 +546,14 @@ switch (command) {
     break;
 
   case "teams":
-    listTeams(projectDir);
+  case "team":
+    if (args[1] === "export") {
+      exportTeam(projectDir, args[2], args[3]);
+    } else if (args[1] === "import") {
+      importTeam(projectDir, args[2]);
+    } else {
+      listTeams(projectDir);
+    }
     break;
 
   case "run":
@@ -515,6 +574,8 @@ switch (command) {
     npx openminions scenarios                  List available predefined scenarios
     npx openminions scenario create            Interactively build a custom scenario
     npx openminions teams                      List created teams
+    npx openminions team export <name>         Export a team to a shareable JSON file
+    npx openminions team import <file>         Import a team from a JSON file
     npx openminions run --intent "goal" --auto Design + execute a squad
     npx openminions run --squad data/squads/x  Execute existing squad
     npx openminions dashboard                  Start the visual dashboard
