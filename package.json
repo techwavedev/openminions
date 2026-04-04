@@ -11,7 +11,7 @@
     "build": "cd ui && npm run build",
     "run": "python3 bin/runner.py",
     "architect": "python3 bin/architect_wizard.py",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "python3 tests/test_dry_run.py",
     "security": "python3 bin/security_gate.py",
     "prepublishOnly": "python3 bin/security_gate.py"
   },
