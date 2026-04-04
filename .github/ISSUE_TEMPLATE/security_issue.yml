@@ -1,0 +1,26 @@
+---
+name: 🔒 Security Issue
+description: Report a security vulnerability (PRIVATE — do not include secrets)
+labels: [security, priority-high]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **NEVER include actual secrets, keys, or credentials in this form.**
+        If the issue involves exposed secrets, email security@techwave.dev instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Issue Description
+      description: Describe the vulnerability without exposing sensitive data
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — Active exposure
+        - High — Potential exposure
+        - Medium — Best practice violation
+        - Low — Informational
