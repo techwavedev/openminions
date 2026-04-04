@@ -67,6 +67,12 @@ SAFE_EXTENSIONS = {
     ".py", ".css", ".html", ".txt", ".sh", ".toml", ".cfg",
 }
 
+# Files excluded from secret scanning (they contain patterns, not secrets)
+SCAN_EXCLUSIONS = {
+    "bin/security_gate.py",
+    "SECURITY.md",
+}
+
 
 def get_tracked_files() -> list[str]:
     """Get all files that would be pushed to remote."""
@@ -120,6 +126,9 @@ def scan_file_for_secrets(filepath: Path) -> list[tuple[int, str, str]]:
                     if "example" in line.lower() or "placeholder" in line.lower():
                         continue
                     if "YOUR_" in line or "xxx" in line.lower() or "<" in line:
+                        continue
+                    # Skip regex pattern definitions (the scanner's own patterns)
+                    if "r'" in line or 'r"' in line:
                         continue
                     findings.append((line_num, name, line.strip()[:100]))
     except Exception:

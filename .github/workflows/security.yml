@@ -9,6 +9,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 jobs:
   # ── Secret Scanning ──────────────────────────────────────────────────────
@@ -41,12 +42,20 @@ jobs:
   codeql:
     name: 🛡️ CodeQL Analysis
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, python]
     steps:
       - uses: actions/checkout@v4
       - uses: github/codeql-action/init@v3
         with:
-          languages: javascript-typescript, python
+          languages: ${{ matrix.language }}
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
       - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
 
   # ── Custom Security Gate ─────────────────────────────────────────────────
   security-gate:
