@@ -185,6 +185,45 @@ class MemoryLogger:
 
 
 # ---------------------------------------------------------------------------
+# Skill Dependency Resolution
+# ---------------------------------------------------------------------------
+class SkillResolver:
+    """Resolves and validates required skills for a squad."""
+
+    def __init__(self, agi_path: Path):
+        self.agi_path = agi_path
+        self.skills_dir = self.agi_path / "skills"
+
+    def check_dependencies(self, pipeline: list[str], roles: dict) -> list[str]:
+        """Check if all tools required by the squad's agents exist. Returns missing skills."""
+        required_tools = set()
+        for agent_name in pipeline:
+            role_config = roles.get(agent_name, {})
+            for tool in role_config.get("tools", []):
+                required_tools.add(tool)
+
+        missing_skills = []
+        for tool in required_tools:
+            tool_dir = self.skills_dir / tool
+            skill_md = tool_dir / "SKILL.md"
+            if not tool_dir.is_dir() or not skill_md.exists():
+                missing_skills.append(tool)
+
+        return missing_skills
+
+    def resolve(self, pipeline: list[str], roles: dict):
+        """Validate dependencies and abort gracefully and auto-fix if possible."""
+        missing = self.check_dependencies(pipeline, roles)
+        if missing:
+            print(f"\n❌ ERROR: Squad initialization failed due to missing skills.", file=sys.stderr)
+            print(f"   Missing dependencies: {', '.join(missing)}", file=sys.stderr)
+            print(f"\n   To auto-resolve, you can try pulling the latest from agi-agent-kit:", file=sys.stderr)
+            print(f"   cd {self.agi_path} && git pull origin main\n", file=sys.stderr)
+            sys.exit(1)
+        print("✅ All skill dependencies resolved successfully.")
+
+
+# ---------------------------------------------------------------------------
 # Validation Gates — Pre/Post execution checks
 # ---------------------------------------------------------------------------
 class ValidationGate:
@@ -323,6 +362,11 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     if dry_run:
         print(f"   ⚠️  DRY RUN — no execution")
     print(f"{'='*60}\n")
+
+    # Resolve Skill Dependencies
+    print(f"🔍 Resolving dependencies...")
+    resolver = SkillResolver(agi_path)
+    resolver.resolve(pipeline, roles)
 
     # Initialize state & logging
     state_mgr = SquadStateManager(squad_dir, config)
