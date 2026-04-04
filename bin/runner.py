@@ -312,12 +312,37 @@ def store_to_qdrant(content: str, memory_type: str, project: str, agi_path: Path
         "--project", project,
     ]
     if tags:
-        cmd.extend(["--tags"] + tags)
+        for t in tags:
+            cmd.extend(["--tags", t])
 
     try:
         subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     except Exception as e:
         print(f"⚠️  Failed to store to Qdrant: {e}", file=sys.stderr)
+
+
+def retrieve_from_qdrant(query: str, project: str, agi_path: Path) -> str:
+    """Retrieve historical context from Qdrant."""
+    cmd = [
+        "python3", str(agi_path / "execution" / "memory_manager.py"),
+        "retrieve",
+        "--query", query,
+        "--project", project,
+        "--limit", "3",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            try:
+                data = json.loads(result.stdout)
+                chunks = data.get("context_chunks", [])
+                if chunks:
+                    return "\n\n".join(chunks)
+            except json.JSONDecodeError:
+                pass
+    except Exception:
+        pass
+    return ""
 
 
 def load_squad_config(squad_dir: Path) -> dict:
@@ -376,7 +401,15 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     state_mgr.write_state(status="running", step_label="Initializing pipeline")
     logger.log_memory("Squad Intent", intent or config.get("description", "N/A"))
 
+    print(f"🧠 Loading past squad memories from intelligence layer...")
+    past_context = retrieve_from_qdrant(f"Goals and previous executions for {squad_name}", squad_name, agi_path)
+    
     step_context = ""
+    if past_context:
+        step_context += f"--- MEMORY FROM PREVIOUS RUNS ---\n{past_context}\n----------------------------------\n\n"
+        print(f"   ✅ Retrieved {len(past_context.splitlines())} lines of historical context.")
+    else:
+        print(f"   ℹ️  No historical context found (new squad or fresh run).")
 
     for i, agent_name in enumerate(pipeline, 1):
         role_config = roles.get(agent_name, {"name": agent_name, "role": "general", "tools": []})
@@ -462,13 +495,16 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     logger.log_memory("Pipeline Complete",
                       f"All {len(pipeline)} steps executed successfully")
 
-    # Store summary to Qdrant
-    summary = (
-        f"Completed squad '{squad_name}': {' → '.join(pipeline)}. "
-        f"Intent: {intent or config.get('description', 'N/A')}"
-    )
-    store_to_qdrant(summary, "decision", "openminions", agi_path,
-                    tags=["squad-run", squad_name])
+    if not dry_run:
+        # Store summary to Qdrant
+        print(f"\n🧠 Committing pipeline results to long-term memory...")
+        summary = (
+            f"Completed squad '{squad_name}': {' → '.join(pipeline)}. "
+            f"Intent: {intent or config.get('description', 'N/A')}.\n\n"
+            f"Final Context:\n{step_context[-1500:]}"
+        )
+        store_to_qdrant(summary, "decision", squad_name, agi_path,
+                        tags=["squad-execution", "final-result"])
 
     print(f"\n{'='*60}")
     print(f"✅ Squad '{squad_name}' completed successfully!")
