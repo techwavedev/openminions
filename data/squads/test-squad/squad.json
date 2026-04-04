@@ -1,0 +1,20 @@
+{
+  "squad_name": "test-squad",
+  "description": "Mock 2-agent pipeline used for end-to-end dry-run testing",
+  "icon": "🧪",
+  "tags": ["test", "mock", "dry-run"],
+  "roles": [
+    {
+      "name": "Researcher",
+      "role": "Research the topic and gather relevant data",
+      "tools": ["webcrawler", "pdf-reader"]
+    },
+    {
+      "name": "Writer",
+      "role": "Write a concise summary based on research findings",
+      "tools": ["documentation"]
+    }
+  ],
+  "pipeline_sequence": ["Researcher", "Writer"],
+  "checkpoints": ["Review research before writing"]
+}
