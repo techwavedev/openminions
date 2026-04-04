@@ -1,0 +1,87 @@
+name: Security & Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # ── Secret Scanning ──────────────────────────────────────────────────────
+  secret-scan:
+    name: 🔑 Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  # ── Dependency Review ────────────────────────────────────────────────────
+  dependency-review:
+    name: 📦 Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  # ── Code Security ───────────────────────────────────────────────────────
+  codeql:
+    name: 🛡️ CodeQL Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript, python
+      - uses: github/codeql-action/analyze@v3
+
+  # ── Custom Security Gate ─────────────────────────────────────────────────
+  security-gate:
+    name: 🔒 Pre-Merge Security Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run Security Gate
+        run: python3 bin/security_gate.py --quiet
+
+  # ── Lint & Validate ──────────────────────────────────────────────────────
+  lint:
+    name: ✅ Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Validate JSON files
+        run: |
+          for f in $(find . -name "*.json" -not -path "*/node_modules/*" -not -path "*/.git/*"); do
+            python3 -c "import json; json.load(open('$f'))" || exit 1
+          done
+
+      - name: Check Python syntax
+        run: |
+          python3 -m py_compile bin/runner.py
+          python3 -m py_compile bin/architect_wizard.py
+          python3 -m py_compile bin/security_gate.py
+
+      - name: Validate package.json
+        run: node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8'))"

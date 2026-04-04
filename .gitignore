@@ -1,0 +1,62 @@
+# ─── Secrets & Credentials (NEVER push these) ────────────────────────────────
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+**/secrets/
+**/.secrets/
+
+# ─── openminions Private State ────────────────────────────────────────────────
+.openminions/preferences.json
+.openminions/
+data/squads/*/state.json
+data/squads/*/runs.md
+data/squads/*/memories.md
+
+# ─── AGI / Qdrant Local State ────────────────────────────────────────────────
+.tmp/
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# ─── IDE Configurations (generated per-user) ─────────────────────────────────
+.claude/
+.cursor/
+.agents/
+.agent/
+.opencode/
+.github/prompts/
+.kiro/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+
+# ─── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+.pnpm-debug.log*
+
+# ─── Build Artifacts ──────────────────────────────────────────────────────────
+ui/dist/
+ui/tsconfig.tsbuildinfo
+ui/test-results/
+*.tgz
+
+# ─── OS Files ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/

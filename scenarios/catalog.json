@@ -1,0 +1,92 @@
+{
+  "blog-content-pipeline": {
+    "name": "Blog Content Pipeline",
+    "description": "Research a topic, write a blog post, generate images, and prepare for publishing",
+    "icon": "✍️",
+    "tags": ["content", "writing", "marketing"],
+    "suggested_skills": ["webcrawler", "image-ai-generator", "documentation"],
+    "roles": [
+      { "name": "Researcher", "role": "Deep-dive research on the topic using web sources", "tools": ["webcrawler", "pdf-reader"] },
+      { "name": "Writer", "role": "Write compelling long-form content from research", "tools": ["documentation"] },
+      { "name": "Designer", "role": "Generate hero images and illustrations", "tools": ["image-ai-generator"] },
+      { "name": "Editor", "role": "Review, polish and SEO-optimize the final piece", "tools": ["documentation"] }
+    ],
+    "pipeline_sequence": ["Researcher", "Writer", "Designer", "Editor"],
+    "checkpoints": ["Review research before writing", "Approve draft before publishing"]
+  },
+  "code-review-squad": {
+    "name": "Code Review Squad",
+    "description": "Analyze a codebase for bugs, security issues, and improvement opportunities",
+    "icon": "🔍",
+    "tags": ["code", "security", "review"],
+    "suggested_skills": ["documentation", "webcrawler"],
+    "roles": [
+      { "name": "Analyzer", "role": "Parse codebase structure and identify patterns", "tools": ["documentation"] },
+      { "name": "SecurityAuditor", "role": "Scan for vulnerabilities and security anti-patterns", "tools": ["documentation"] },
+      { "name": "Optimizer", "role": "Identify performance bottlenecks and suggest improvements", "tools": ["documentation"] },
+      { "name": "Reporter", "role": "Compile findings into an actionable report", "tools": ["documentation"] }
+    ],
+    "pipeline_sequence": ["Analyzer", "SecurityAuditor", "Optimizer", "Reporter"],
+    "checkpoints": ["Review security findings before report"]
+  },
+  "social-media-campaign": {
+    "name": "Social Media Campaign",
+    "description": "Create a multi-platform social media campaign with visuals and copy",
+    "icon": "📱",
+    "tags": ["social", "marketing", "content"],
+    "suggested_skills": ["webcrawler", "image-ai-generator", "resend"],
+    "roles": [
+      { "name": "Strategist", "role": "Define campaign goals, audiences, and messaging", "tools": ["webcrawler"] },
+      { "name": "Copywriter", "role": "Write platform-specific copy (Twitter, LinkedIn, Instagram)", "tools": ["documentation"] },
+      { "name": "VisualDesigner", "role": "Generate campaign visuals and graphics", "tools": ["image-ai-generator"] },
+      { "name": "Scheduler", "role": "Create posting schedule and compile final campaign kit", "tools": ["documentation"] }
+    ],
+    "pipeline_sequence": ["Strategist", "Copywriter", "VisualDesigner", "Scheduler"],
+    "checkpoints": ["Approve strategy before content creation"]
+  },
+  "competitive-analysis": {
+    "name": "Competitive Analysis",
+    "description": "Research competitors, analyze their products, and compile a strategic report",
+    "icon": "📊",
+    "tags": ["research", "business", "strategy"],
+    "suggested_skills": ["webcrawler", "pdf-reader", "documentation"],
+    "roles": [
+      { "name": "Scout", "role": "Discover and catalog competitor products and features", "tools": ["webcrawler"] },
+      { "name": "PricingAnalyst", "role": "Compare pricing models and value propositions", "tools": ["webcrawler", "pdf-reader"] },
+      { "name": "FeatureMapper", "role": "Create feature comparison matrix", "tools": ["documentation"] },
+      { "name": "Strategist", "role": "Synthesize findings into actionable recommendations", "tools": ["documentation"] }
+    ],
+    "pipeline_sequence": ["Scout", "PricingAnalyst", "FeatureMapper", "Strategist"],
+    "checkpoints": ["Validate competitor list before deep analysis"]
+  },
+  "email-outreach": {
+    "name": "Email Outreach Campaign",
+    "description": "Research leads, craft personalized emails, and send via Resend",
+    "icon": "📧",
+    "tags": ["email", "outreach", "sales"],
+    "suggested_skills": ["webcrawler", "resend", "documentation"],
+    "roles": [
+      { "name": "LeadResearcher", "role": "Find and qualify prospects from web sources", "tools": ["webcrawler"] },
+      { "name": "Copywriter", "role": "Craft personalized email sequences per lead segment", "tools": ["documentation"] },
+      { "name": "Reviewer", "role": "Review emails for tone, compliance, and personalization quality", "tools": ["documentation"] },
+      { "name": "Sender", "role": "Send approved emails via Resend API", "tools": ["resend"] }
+    ],
+    "pipeline_sequence": ["LeadResearcher", "Copywriter", "Reviewer", "Sender"],
+    "checkpoints": ["Approve email drafts before sending"]
+  },
+  "documentation-generator": {
+    "name": "Documentation Generator",
+    "description": "Analyze a codebase and generate comprehensive documentation",
+    "icon": "📚",
+    "tags": ["docs", "code", "technical"],
+    "suggested_skills": ["documentation", "pdf-reader"],
+    "roles": [
+      { "name": "CodeScanner", "role": "Parse project structure, exports, and dependencies", "tools": ["documentation"] },
+      { "name": "APIDocWriter", "role": "Generate API reference documentation from code", "tools": ["documentation"] },
+      { "name": "GuideWriter", "role": "Write getting started guides and tutorials", "tools": ["documentation"] },
+      { "name": "Formatter", "role": "Format and organize docs with table of contents and cross-links", "tools": ["documentation"] }
+    ],
+    "pipeline_sequence": ["CodeScanner", "APIDocWriter", "GuideWriter", "Formatter"],
+    "checkpoints": []
+  }
+}

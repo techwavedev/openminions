@@ -11,13 +11,15 @@ import type { SquadInfo, SquadState, WsMessage } from "../types/state";
 
 function resolveSquadsDir(): string {
   const candidates = [
-    path.resolve(process.cwd(), "../data/squads"),  // started from dashboard/
+    path.resolve(process.cwd(), "../data/squads"),  // started from ui/
     path.resolve(process.cwd(), "data/squads"),     // started from project root
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  return path.resolve(process.cwd(), "../data/squads"); // default (will be created on demand)
+  // Default: create at project root level
+  const defaultDir = path.resolve(process.cwd(), "../data/squads");
+  return defaultDir;
 }
 
 async function discoverSquads(squadsDir: string): Promise<SquadInfo[]> {
