@@ -345,10 +345,11 @@ class ValidationGate:
 # Pipeline Executor
 # ---------------------------------------------------------------------------
 def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
-                       step_context: str = "", message_bus: MessageBus | None = None) -> tuple[str, float]:
+                       step_context: str = "", message_bus: MessageBus | None = None,
+                       sandbox_dir: Path | None = None) -> tuple[str, float, int]:
     """
     Execute a single agent step using AGI's local micro agent.
-    Returns (result_text, duration_seconds).
+    Returns (result_text, duration_seconds, tokens_used).
     """
     agent_name = agent_config["name"]
     tools = agent_config.get("tools", [])
@@ -374,9 +375,17 @@ def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
 
     start = time.time()
     try:
+        run_kwargs = {
+            "capture_output": True,
+            "text": True,
+            "timeout": 180,
+        }
+        if sandbox_dir:
+            run_kwargs["cwd"] = str(sandbox_dir)
+            
         result = subprocess.run(
             ["python3", str(micro_agent), "--task", prompt],
-            capture_output=True, text=True, timeout=180,
+            **run_kwargs
         )
         duration = time.time() - start
         output_raw = result.stdout.strip()
@@ -596,13 +605,18 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
                         print(f"   🔸 {res}")
                         return agent_name, res, dur, role_desc
                     
+                    # Setup sandbox for agent
+                    agent_sandbox = squad_dir / ".sandbox" / agent_name.lower().replace(" ", "-")
+                    agent_sandbox.mkdir(parents=True, exist_ok=True)
+
                     # Execute
                     res, dur, tokens_used = execute_agent_step(
                         agent_config=role_config,
                         intent=intent,
                         agi_path=agi_path,
                         step_context=step_context,
-                        message_bus=message_bus
+                        message_bus=message_bus,
+                        sandbox_dir=agent_sandbox
                     )
                     
                     state_mgr.add_tokens(tokens_used)
