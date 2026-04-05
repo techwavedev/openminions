@@ -54,20 +54,20 @@
 
 ## v0.4.0 — Multi-Agent Execution
 
-**Status: 🔄 In Progress**
+**Status: 🟢 Completed**
 
 - [x] Parallel agent execution (non-dependent steps run concurrently) *(completed by Copilot — Issue #8)*
 - [x] Agent-to-agent communication channels *(completed by Copilot — Issue #32)*
 - [x] Conditional pipeline branching (if/else logic in squad.yaml) *(completed by Copilot — Issue #33)*
 - [x] Error recovery with automatic retry and fallback agents *(completed by Copilot — Issue #35)*
 - [x] Resource pool management (token budget tracking per squad) *(completed by Copilot — Issue #36)*
-- [ ] Execution sandboxing (isolated environments per agent)
+- [x] Execution sandboxing (isolated environments per agent) *(completed by Copilot — Issue #37)*
 
 ---
 
 ## v0.5.0 — Ecosystem & Distribution
 
-**Status: 📋 Planned**
+**Status: 🔄 In Progress**
 
 - [ ] `npx openminions init` — one-command project scaffolding
 - [ ] Published to npm as `@techwavedev/openminions`
