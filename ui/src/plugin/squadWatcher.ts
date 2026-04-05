@@ -248,10 +248,29 @@ export function squadWatcherPlugin(): Plugin {
             const pyCommand = `python3 "${mmPath}" retrieve --query "" --project "${squadName}" --limit 20`;
             
             cp.exec(pyCommand, (error: any, stdout: string, stderr: string) => {
+              // Extract valid JSON from stdout even if process exited with non-zero
+              let parsedJson = null;
+              try {
+                if (stdout) {
+                  // The python script might output warnings before JSON. Find the first '{' or '['
+                  const match = stdout.match(/[\{\[]/);
+                  if (match) {
+                     const jsonStr = stdout.substring(match.index!);
+                     parsedJson = JSON.parse(jsonStr);
+                  }
+                }
+              } catch (e) {}
+
+              if (parsedJson) {
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify(parsedJson));
+                return;
+              }
+
               if (error) {
                 console.error("[history api error]", stderr || error);
                 
-                // Fallback to local memories.md if Qdrant isn't ready
+                // Fallback to local memories.md if Qdrant isn't ready or no results
                 const memPath = path.join(squadsDir, squadName, "memories.md");
                 if (fs.existsSync(memPath)) {
                    const content = fs.readFileSync(memPath, "utf-8");
@@ -262,8 +281,8 @@ export function squadWatcherPlugin(): Plugin {
                    return;
                 }
 
-                res.writeHead(500);
-                res.end(JSON.stringify({ error: stderr || stdout || error.message }));
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ results: [] }));
                 return;
               }
               res.setHeader("Content-Type", "application/json");

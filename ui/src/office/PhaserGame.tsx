@@ -70,8 +70,8 @@ export function PhaserGame() {
   return (
     <div
       ref={containerRef}
+      className="absolute inset-0 w-full h-full"
       style={{
-        flex: 1,
         overflow: 'hidden',
         imageRendering: 'auto',
       }}

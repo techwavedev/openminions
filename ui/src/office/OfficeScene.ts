@@ -104,10 +104,18 @@ export class OfficeScene extends Phaser.Scene {
       }));
     }
 
+    let minCol = Infinity, minRow = Infinity;
+    for (const agent of agents) {
+      minCol = Math.min(minCol, agent.desk.col);
+      minRow = Math.min(minRow, agent.desk.row);
+    }
+
     let maxCol = 0, maxRow = 0;
     for (const agent of agents) {
-      maxCol = Math.max(maxCol, agent.desk.col);
-      maxRow = Math.max(maxRow, agent.desk.row);
+      const normCol = agent.desk.col - minCol;
+      const normRow = agent.desk.row - minRow;
+      maxCol = Math.max(maxCol, normCol + 1);
+      maxRow = Math.max(maxRow, normRow + 1);
     }
 
     // Wider cells for comfortable spacing between agents + labels
@@ -126,8 +134,10 @@ export class OfficeScene extends Phaser.Scene {
 
     for (let i = 0; i < agents.length; i++) {
       const agent = agents[i];
-      const x = (agent.desk.col - 1) * cellW + MARGIN + cellW / 2;
-      const y = (agent.desk.row - 1) * cellH + MARGIN + WALL_H + cellH / 2;
+      const normCol = agent.desk.col - minCol;
+      const normRow = agent.desk.row - minRow;
+      const x = normCol * cellW + MARGIN + cellW / 2;
+      const y = normRow * cellH + MARGIN + WALL_H + cellH / 2;
       const characterName = characterMap.get(agent.id)!;
       const deskVariant = i % 2 === 0 ? 'black' : 'white';
       const agentSprite = new AgentSprite(this, x, y, characterName, deskVariant, agent);
