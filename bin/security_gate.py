@@ -71,6 +71,7 @@ SAFE_EXTENSIONS = {
 SCAN_EXCLUSIONS = {
     "bin/security_gate.py",
     "SECURITY.md",
+    "tests/test_unit_security_gate.py",
 }
 
 
@@ -229,6 +230,8 @@ def main():
     # 3. Scan for secrets in tracked files
     secret_count = 0
     for filepath_str in tracked:
+        if filepath_str in SCAN_EXCLUSIONS:
+            continue
         filepath = PROJECT_ROOT / filepath_str
         if not filepath.exists():
             continue
