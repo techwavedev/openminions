@@ -468,6 +468,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
             logger.log_memory(f"Handoff {agent_name}→{next_agent}", result[:200])
 
         state_mgr.set_agent_status(agent_name, "done")
+        state_mgr.write_state(step_label=f"Completed: {agent_name}")
         step_context += f"\n[{agent_name}]: {result[:300]}\n"
 
         # Check for checkpoints

@@ -155,9 +155,11 @@ export class AgentSprite {
     return this.deskVariant === 'black' ? DESK_KEYS.blackCoding : DESK_KEYS.whiteCoding;
   }
 
-  private getAvatarKey(_status: AgentStatus): string {
-    // Always start in talk frame — animation will cycle from there
-    return avatarKeys(this.characterName).talk;
+  private getAvatarKey(status: AgentStatus): string {
+    if (status === 'working' || status === 'delivering') {
+        return avatarKeys(this.characterName).talk;
+    }
+    return avatarKeys(this.characterName).wave1; // Using wave1 or simply a static frame as idle
   }
 
   private drawLabelBackground(x: number, labelY: number): void {
@@ -187,9 +189,14 @@ export class AgentSprite {
     this.avatar.setScale(this.avatarDisplayH / this.avatar.height);
   }
 
-  private startAnimation(_status: AgentStatus): void {
-    // Always run the working animation regardless of status
+  private startAnimation(status: AgentStatus): void {
     const keys = avatarKeys(this.characterName);
+    
+    if (status !== 'working' && status !== 'delivering') {
+        this.setAvatarFrame(keys.wave1);
+        return; // Don't loop animation if idle or done
+    }
+
     let frame = 0;
     this.animTimer = this.scene.time.addEvent({
       delay: 500,
