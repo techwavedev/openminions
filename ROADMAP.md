@@ -84,7 +84,7 @@
 
 - [ ] Full test suite (unit + integration + e2e)
 - [x] Performance benchmarks (token usage, execution time per scenario) *(tracked in data/benchmarks.json)*
-- [ ] Documentation site (guides, API reference, tutorials)
+- [x] Documentation site (guides, API reference, tutorials)
 - [ ] VS Code extension — visual squad builder
 - [ ] Team collaboration — shared squads across users
 - [ ] Cloud deployment option (managed service)
