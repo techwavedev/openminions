@@ -305,8 +305,8 @@ async function init(targetDir) {
         const { execFileSync } = require("child_process");
         execFileSync(
           "python3",
-          [path.join(targetDir, "bin", "architect_wizard.py"), "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
-          { stdio: "inherit" }
+          [path.join(__dirname, "architect_wizard.py"), "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
+          { stdio: "inherit", cwd: targetDir }
         );
       } catch (e) {
         log.err("Architect wizard failed. You can try again with: python3 bin/architect_wizard.py --intent 'your goal'");
@@ -389,8 +389,8 @@ async function createScenario(targetDir, intentArg) {
       const { execFileSync } = require("child_process");
       execFileSync(
         "python3",
-        [path.join(targetDir, "bin", "skill_discovery.py"), "generate-team", "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
-        { stdio: "inherit" }
+        [path.join(__dirname, "skill_discovery.py"), "generate-team", "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
+        { stdio: "inherit", cwd: targetDir }
       );
     } catch (e) {
       log.err("Failed to create scenario.");
@@ -483,7 +483,7 @@ function importTeam(targetDir, sourceFile) {
 
 // ─── Run Command ─────────────────────────────────────────────────────────────
 function runSquad(targetDir, args) {
-  const runnerPath = path.join(targetDir, "bin", "runner.py");
+  const runnerPath = path.join(__dirname, "runner.py");
   const { execFileSync } = require("child_process");
 
   try {
@@ -496,12 +496,17 @@ function runSquad(targetDir, args) {
 
 // ─── Dashboard Command ──────────────────────────────────────────────────────
 function startDashboard(targetDir) {
-  const uiDir = path.join(targetDir, "ui");
+  const uiDir = path.join(__dirname, "..", "ui");
   log.info("Starting openminions dashboard...");
   log.info(`Dashboard: http://localhost:5173`);
 
   try {
-    execSync("npm run dev", { stdio: "inherit", cwd: uiDir });
+    const serverPath = path.join(__dirname, "server.js");
+    if (fs.existsSync(serverPath)) {
+      execSync(`node ${serverPath}`, { stdio: "inherit", cwd: targetDir, env: { ...process.env, PORT: "5173" } });
+    } else {
+      execSync("npm run dev", { stdio: "inherit", cwd: uiDir });
+    }
   } catch {
     log.err("Dashboard failed to start. Run 'npm install' in ui/ first.");
   }
