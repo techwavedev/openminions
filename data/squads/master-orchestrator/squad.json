@@ -1,0 +1,64 @@
+{
+  "squad": {
+    "squad_name": "master-orchestrator",
+    "name": "Master Orchestrator",
+    "description": "A top-level orchestrator squad that manages team creation, retrieves context from Qdrant memory, coordinates handoffs between other squads, and synchronizes status.",
+    "icon": "🧠",
+    "agents": [
+      "Coordinator",
+      "MemoryManager",
+      "TaskRouter",
+      "Synthesizer"
+    ],
+    "roles": [
+      {
+        "name": "Coordinator",
+        "role": "Manages overarching logic and kicks off dependent squads",
+        "tools": [
+          "upstream-sync",
+          "cowork-export"
+        ],
+        "scripts": []
+      },
+      {
+        "name": "MemoryManager",
+        "role": "Retrieves and analyzes history across all deployed sub-agent teams",
+        "tools": [
+          "qdrant-memory"
+        ],
+        "scripts": [
+          "auto",
+          "retrieve"
+        ]
+      },
+      {
+        "name": "TaskRouter",
+        "role": "Creates cross-agent handoffs for dedicated teams (e.g., docs-team, repo-maintainer)",
+        "tools": [
+          "qdrant-memory"
+        ],
+        "scripts": [
+          "cross_agent_context.py"
+        ]
+      },
+      {
+        "name": "Synthesizer",
+        "role": "Compiles outputs from all teams securely and delivers final review",
+        "tools": [
+          "documentation"
+        ],
+        "scripts": []
+      }
+    ],
+    "pipeline_sequence": [
+      "Coordinator",
+      "MemoryManager",
+      "TaskRouter",
+      "Synthesizer"
+    ],
+    "checkpoints": [
+      "Verify cross-agent task handoffs",
+      "Approve final orchestration sequence"
+    ]
+  }
+}
