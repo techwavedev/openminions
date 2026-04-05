@@ -9,10 +9,12 @@ import { SquadBuilder } from "@/pages/SquadBuilder";
 import { ProcessMap } from "@/pages/ProcessMap";
 import { SquadHistory } from "@/pages/SquadHistory";
 import { LogsPanel } from "@/components/LogsPanel";
+import { SettingsModal } from "@/components/SettingsModal";
 
 export function App() {
   useSquadSocket();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
     <div className="flex h-screen w-full flex-col bg-background text-gray-100 overflow-hidden font-sans">
@@ -29,7 +31,10 @@ export function App() {
           </span>
         </div>
         <div className="flex md:hidden items-center">
-          <button className="p-2 text-gray-400 hover:text-white transition-colors">
+          <button 
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => setIsSettingsOpen(true)}
+          >
             <Settings size={20} />
           </button>
         </div>
@@ -58,7 +63,10 @@ export function App() {
         </nav>
 
         <div className="hidden md:flex items-center">
-          <button className="p-2 text-gray-400 hover:text-white transition-colors">
+          <button 
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            onClick={() => setIsSettingsOpen(true)}
+          >
             <Settings size={20} />
           </button>
         </div>
@@ -101,6 +109,9 @@ export function App() {
       <div className="h-10 border-t border-white/5 bg-surface/90 backdrop-blur-md z-20">
         <StatusBar />
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }
