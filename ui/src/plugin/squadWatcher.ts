@@ -36,23 +36,31 @@ async function discoverSquads(squadsDir: string): Promise<SquadInfo[]> {
     if (!entry.isDirectory()) continue;
     if (entry.name.startsWith(".") || entry.name.startsWith("_")) continue;
 
+    const jsonPath = path.join(squadsDir, entry.name, "squad.json");
     const yamlPath = path.join(squadsDir, entry.name, "squad.yaml");
+    
+    let s: any = null;
     try {
-      const raw = await fsp.readFile(yamlPath, "utf-8");
-      const parsed = parseYaml(raw);
-      const s = parsed?.squad;
-      if (s) {
-        squads.push({
-          code: typeof s.code === "string" ? s.code : entry.name,
-          name: typeof s.name === "string" ? s.name : entry.name,
-          description: typeof s.description === "string" ? s.description : "",
-          icon: typeof s.icon === "string" ? s.icon : "\u{1F4CB}",
-          agents: Array.isArray(s.agents) ? (s.agents as unknown[]).filter((a): a is string => typeof a === "string") : [],
-        });
-        continue;
+      if (fs.existsSync(jsonPath)) {
+        const raw = await fsp.readFile(jsonPath, "utf-8");
+        s = JSON.parse(raw)?.squad;
+      } else if (fs.existsSync(yamlPath)) {
+        const raw = await fsp.readFile(yamlPath, "utf-8");
+        s = parseYaml(raw)?.squad;
       }
     } catch {
-      // No squad.yaml or invalid YAML — fall through to default
+      // invalid JSON/YAML - fall through
+    }
+
+    if (s) {
+      squads.push({
+        code: typeof s.squad_name === "string" ? s.squad_name : (typeof s.code === "string" ? s.code : entry.name),
+        name: typeof s.name === "string" ? s.name : entry.name,
+        description: typeof s.description === "string" ? s.description : "",
+        icon: typeof s.icon === "string" ? s.icon : "\u{1F4CB}",
+        agents: Array.isArray(s.agents) ? (s.agents as unknown[]).filter((a): a is string => typeof a === "string") : [],
+      });
+      continue;
     }
 
     squads.push({
@@ -164,18 +172,55 @@ export function squadWatcherPlugin(): Plugin {
         server.config.logger.error(`[squad-watcher] failed to create squads dir: ${err.message}`);
       });
 
-      // REST API fallback — serves snapshot over HTTP for polling clients
+      // REST API fallback for polling and other actions
       server.middlewares.use(async (req, res, next) => {
-        if (req.url !== "/api/snapshot") return next();
-        try {
-          const snapshot = await buildSnapshot(squadsDir);
-          res.setHeader("Content-Type", "application/json");
-          res.setHeader("Cache-Control", "no-cache");
-          res.end(JSON.stringify(snapshot));
-        } catch {
-          res.writeHead(500);
-          res.end("Internal Server Error");
+        if (req.url === "/api/snapshot") {
+          try {
+            const snapshot = await buildSnapshot(squadsDir);
+            res.setHeader("Content-Type", "application/json");
+            res.setHeader("Cache-Control", "no-cache");
+            res.end(JSON.stringify(snapshot));
+          } catch {
+            res.writeHead(500);
+            res.end("Internal Server Error");
+          }
+          return;
         }
+
+        if (req.url === "/api/create-squad" && req.method === "POST") {
+          let body = "";
+          req.on("data", chunk => { body += chunk.toString(); });
+          req.on("end", () => {
+            try {
+              const { intent } = JSON.parse(body);
+              if (!intent) {
+                res.writeHead(400);
+                res.end(JSON.stringify({ error: "No intent provided" }));
+                return;
+              }
+
+              const cp = require("node:child_process");
+              const openminionsRoot = path.resolve(process.cwd(), "..");
+              const pyCommand = `python3 bin/skill_discovery.py generate-team --intent "${intent.replace(/"/g, '\\"')}" --output-dir data/squads`;
+              
+              cp.exec(pyCommand, { cwd: openminionsRoot }, (error: any, stdout: string, stderr: string) => {
+                if (error) {
+                  res.writeHead(500);
+                  res.end(JSON.stringify({ error: stderr || stdout || error.message }));
+                  return;
+                }
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ success: true, output: stdout }));
+              });
+            } catch (e: any) {
+              res.writeHead(500);
+              res.end(JSON.stringify({ error: e.message }));
+            }
+          });
+          return;
+        }
+
+        next();
       });
 
       // File watcher using chokidar — reliable cross-platform, handles partial writes

@@ -5,6 +5,8 @@ import { PhaserGame } from "@/office/PhaserGame";
 import { StatusBar } from "@/components/StatusBar";
 import { Bot, Activity, Map, Settings, PlusCircle } from "lucide-react";
 
+import { SquadBuilder } from "@/pages/SquadBuilder";
+
 export function App() {
   useSquadSocket();
   const [activeTab, setActiveTab] = useState("overview");
@@ -62,13 +64,18 @@ export function App() {
           </div>
         </div>
 
-        {/* Center / Right - Phaser visualization & logs */}
+        {/* Center / Right - Phaser visualization & logs OR Builder UI */}
         <div className="flex-1 flex flex-col gap-4 relative z-0 animate-[fadeIn_0.5s_ease-out]">
           <div className="glass-panel flex-1 overflow-hidden relative group">
-            {/* Glow effect behind phaser */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-secondary/20 transition-all duration-700"></div>
-            
-            <PhaserGame />
+            {activeTab === "builder" ? (
+              <SquadBuilder />
+            ) : (
+              <>
+               {/* Glow effect behind phaser */}
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-secondary/20 transition-all duration-700"></div>
+               <PhaserGame />
+              </>
+            )}
           </div>
         </div>
 
