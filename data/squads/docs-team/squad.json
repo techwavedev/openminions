@@ -1,0 +1,79 @@
+{
+  "squad": {
+    "squad_name": "docs-team",
+    "name": "Documentation Maintainers",
+    "description": "Write, update, and maintain project documentation, review code to write readmes, and manage internal knowledge bases.",
+    "icon": "📝",
+    "agents": [
+      "Webcrawler",
+      "Notebooklm",
+      "Documentation",
+      "Reviewer"
+    ],
+    "roles": [
+      {
+        "name": "Webcrawler",
+        "role": "Research and gather information from web sources",
+        "tools": [
+          "webcrawler"
+        ],
+        "scripts": [
+          "filter_docs.py",
+          "extract_page.py",
+          "crawl_docs.py"
+        ]
+      },
+      {
+        "name": "Notebooklm",
+        "role": "Query knowledge bases for research insights",
+        "tools": [
+          "notebooklm"
+        ],
+        "scripts": [
+          "run.py",
+          "config.py",
+          "setup_environment.py",
+          "browser_utils.py",
+          "__init__.py",
+          "browser_session.py",
+          "ask_question.py",
+          "cleanup_manager.py",
+          "notebook_manager.py",
+          "auth_manager.py"
+        ]
+      },
+      {
+        "name": "Documentation",
+        "role": "Write, review, and organize documentation",
+        "tools": [
+          "documentation"
+        ],
+        "scripts": [
+          "analyze_code.py",
+          "generate_changelog.py",
+          "sync_docs.py",
+          "detect_changes.py",
+          "update_skill_docs.py"
+        ]
+      },
+      {
+        "name": "Reviewer",
+        "role": "Review quality and validate all outputs",
+        "tools": [
+          "documentation"
+        ],
+        "scripts": []
+      }
+    ],
+    "pipeline_sequence": [
+      "Webcrawler",
+      "Notebooklm",
+      "Documentation",
+      "Reviewer"
+    ],
+    "checkpoints": [
+      "Review research before proceeding",
+      "Approve final output before delivery"
+    ]
+  }
+}

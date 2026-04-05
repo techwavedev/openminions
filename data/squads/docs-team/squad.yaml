@@ -1,0 +1,9 @@
+squad:
+  code: "docs-team"
+  name: "Documentation Maintainers"
+  description: "Write, update, and maintain project documentation, review code to write readmes, and manage internal knowledge bases."
+  agents:
+    - "Webcrawler"
+    - "Notebooklm"
+    - "Documentation"
+    - "Reviewer"
