@@ -41,9 +41,9 @@
 
 ## v0.3.0 — Dashboard Evolution
 
-**Status: 📋 Planned**
+**Status: 🔄 In Progress**
 
-- [ ] Dashboard redesign — premium dark theme with glassmorphism
+- [ ] Dashboard redesign — premium dark theme with glassmorphism *(assigned to Copilot — Issue #7)*
 - [ ] Agent activity log panel (real-time output streaming)
 - [ ] Squad history viewer (past runs with replay)
 - [ ] Pipeline visualization (flowchart view)
