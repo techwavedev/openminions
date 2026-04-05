@@ -41,7 +41,7 @@
 
 ## v0.3.0 — Dashboard Evolution
 
-**Status: 🔄 In Progress**
+**Status: 🟢 Completed**
 
 - [x] Dashboard redesign — premium dark theme with glassmorphism *(assigned to Copilot — Issue #7)*
 - [x] Agent activity log panel (real-time output streaming) *(completed by Copilot — Issue #25)*
@@ -54,9 +54,9 @@
 
 ## v0.4.0 — Multi-Agent Execution
 
-**Status: 📋 Planned**
+**Status: 🔄 In Progress**
 
-- [ ] Parallel agent execution (non-dependent steps run concurrently)
+- [ ] Parallel agent execution (non-dependent steps run concurrently) *(assigned to Copilot — Issue #8)*
 - [ ] Agent-to-agent communication channels
 - [ ] Conditional pipeline branching (if/else logic in squad.yaml)
 - [ ] Error recovery with automatic retry and fallback agents

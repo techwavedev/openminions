@@ -25,6 +25,8 @@ import time
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+import concurrent.futures
+import threading
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -57,10 +59,21 @@ class SquadStateManager:
         self.squad_name = squad_config.get("squad_name", squad_dir.name)
         self.roles = squad_config.get("roles", [])
         self.pipeline = squad_config.get("pipeline_sequence", [])
+        self.flat_pipeline = self._flatten_pipeline(self.pipeline)
         self.checkpoints = squad_config.get("checkpoints", [])
-        self.total_steps = len(self.pipeline)
+        self.total_steps = len(self.pipeline)  # count top-level steps (phases)
         self.current_step = 0
         self.started_at = datetime.now(timezone.utc).isoformat()
+        self._lock = threading.Lock()
+
+    def _flatten_pipeline(self, pipeline: list) -> list:
+        flat = []
+        for item in pipeline:
+            if isinstance(item, list):
+                flat.extend(item)
+            else:
+                flat.append(item)
+        return flat
 
         # Assign desk positions in a grid (4 columns)
         self.agents = []
@@ -90,33 +103,36 @@ class SquadStateManager:
     def write_state(self, status: str = "running", step_label: str = "",
                     handoff: dict | None = None):
         """Write current state to state.json for dashboard consumption."""
-        state = {
-            "squad": self.squad_name,
-            "status": status,
-            "step": {
-                "current": self.current_step,
-                "total": self.total_steps,
-                "label": step_label,
-            },
-            "agents": self.agents,
-            "handoff": handoff,
-            "startedAt": self.started_at,
-            "updatedAt": datetime.now(timezone.utc).isoformat(),
-        }
-        self.state_path.write_text(json.dumps(state, indent=2))
-        return state
+        with self._lock:
+            state = {
+                "squad": self.squad_name,
+                "status": status,
+                "step": {
+                    "current": self.current_step,
+                    "total": self.total_steps,
+                    "label": step_label,
+                },
+                "agents": self.agents,
+                "handoff": handoff,
+                "startedAt": self.started_at,
+                "updatedAt": datetime.now(timezone.utc).isoformat(),
+            }
+            self.state_path.write_text(json.dumps(state, indent=2))
+            return state
 
     def set_agent_status(self, agent_name: str, status: str):
         """Update a specific agent's status."""
         agent_id = agent_name.lower().replace(" ", "-")
-        for agent in self.agents:
-            if agent["id"] == agent_id or agent["name"] == agent_name:
-                agent["status"] = status
-                break
+        with self._lock:
+            for agent in self.agents:
+                if agent["id"] == agent_id or agent["name"] == agent_name:
+                    agent["status"] = status
+                    break
 
     def advance_step(self, label: str = ""):
         """Move to the next pipeline step."""
-        self.current_step += 1
+        with self._lock:
+            self.current_step += 1
         self.write_state(step_label=label)
 
     def complete(self):
@@ -141,6 +157,7 @@ class MemoryLogger:
         self.squad_dir = squad_dir
         self.runs_path = squad_dir / "runs.md"
         self.memories_path = squad_dir / "memories.md"
+        self._lock = threading.Lock()
         self._init_files()
 
     def _init_files(self):
@@ -162,15 +179,17 @@ class MemoryLogger:
             f"- **Duration:** {duration_s:.1f}s\n"
             f"- **Result:** {result}\n\n"
         )
-        with open(self.runs_path, "a") as f:
-            f.write(entry)
+        with self._lock:
+            with open(self.runs_path, "a") as f:
+                f.write(entry)
 
     def log_memory(self, key: str, value: str):
         """Store a persistent memory entry."""
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
         entry = f"### {key}\n- _Recorded: {now}_\n- {value}\n\n"
-        with open(self.memories_path, "a") as f:
-            f.write(entry)
+        with self._lock:
+            with open(self.memories_path, "a") as f:
+                f.write(entry)
 
     def log_checkpoint(self, step: int, description: str):
         """Log a checkpoint (human approval point)."""
@@ -374,6 +393,13 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     config = load_squad_config(squad_dir)
     squad_name = config.get("squad_name", squad_dir.name)
     pipeline = config.get("pipeline_sequence", [])
+    flat_pipeline = []
+    for item in pipeline:
+        if isinstance(item, list):
+            flat_pipeline.extend(item)
+        else:
+            flat_pipeline.append(item)
+            
     roles = {r["name"]: r for r in config.get("roles", [])}
     checkpoints = config.get("checkpoints", [])
 
@@ -391,7 +417,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     # Resolve Skill Dependencies
     print(f"🔍 Resolving dependencies...")
     resolver = SkillResolver(agi_path)
-    resolver.resolve(pipeline, roles)
+    resolver.resolve(flat_pipeline, roles)
 
     # Initialize state & logging
     state_mgr = SquadStateManager(squad_dir, config)
@@ -411,85 +437,115 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     else:
         print(f"   ℹ️  No historical context found (new squad or fresh run).")
 
-    for i, agent_name in enumerate(pipeline, 1):
-        role_config = roles.get(agent_name, {"name": agent_name, "role": "general", "tools": []})
-        tools = role_config.get("tools", [])
-        role_desc = role_config.get("role", "")
+    try:
+        for i, step in enumerate(pipeline, 1):
+            if isinstance(step, list):
+                agents_to_run = step
+                step_label = f"Parallel Phase: {', '.join(agents_to_run)}"
+            else:
+                agents_to_run = [step]
+                step_label = step
 
-        print(f"\n📍 Step {i}/{len(pipeline)}: {agent_name}")
-        print(f"   Role: {role_desc}")
-        print(f"   Tools: {', '.join(tools)}")
+            print(f"\n📍 Step {i}/{len(pipeline)}: {step_label}")
+            state_mgr.advance_step(label=step_label)
 
-        # Pre-validation gate
-        if not gate.pre_validate(agent_name, tools, role_desc):
-            logger.log_run(i, agent_name, role_desc, "BLOCKED by pre-validation gate")
-            state_mgr.set_agent_status(agent_name, "checkpoint")
-            state_mgr.write_state(status="checkpoint", step_label=f"BLOCKED: {agent_name}")
-            print(f"   🚫 Skipped (blocked by security gate)")
-            continue
+            def run_agent(agent_name):
+                role_config = roles.get(agent_name, {"name": agent_name, "role": "general", "tools": []})
+                tools = role_config.get("tools", [])
+                role_desc = role_config.get("role", "")
+                
+                print(f"   [Thread] Starting {agent_name} - Role: {role_desc}")
+                
+                # Pre-validation gate
+                if not gate.pre_validate(agent_name, tools, role_desc):
+                    logger.log_run(i, agent_name, role_desc, "BLOCKED by pre-validation gate")
+                    state_mgr.set_agent_status(agent_name, "checkpoint")
+                    state_mgr.write_state(status="checkpoint", step_label=f"BLOCKED: {agent_name}")
+                    print(f"   🚫 Skipped {agent_name} (blocked by security gate)")
+                    return agent_name, None, 0, role_desc
 
-        # Update dashboard state
-        state_mgr.set_agent_status(agent_name, "working")
-        state_mgr.advance_step(label=f"{agent_name}: {role_desc[:50]}")
+                state_mgr.set_agent_status(agent_name, "working")
+                # write state just for the first agent or occasionally
+                state_mgr.write_state(step_label=f"{agent_name}: {role_desc[:50]}")
 
-        if dry_run:
-            result = f"[DRY RUN] Would execute {agent_name} with tools: {', '.join(tools)}"
-            duration = 0.0
-            print(f"   🔸 {result}")
-        else:
-            # Execute
-            result, duration = execute_agent_step(role_config, intent, agi_path, step_context)
-            print(f"   ⏱️  Completed in {duration:.1f}s")
-            if result:
-                # Show truncated result
-                preview = result[:200] + "..." if len(result) > 200 else result
-                print(f"   📄 {preview}")
+                if dry_run:
+                    res = f"[DRY RUN] Would execute {agent_name} with tools: {', '.join(tools)}"
+                    dur = 0.0
+                    print(f"   🔸 {res}")
+                    return agent_name, res, dur, role_desc
+                
+                # Execute
+                res, dur = execute_agent_step(role_config, intent, agi_path, step_context)
+                
+                # Post-validation gate
+                gate.post_validate(agent_name, res)
+                return agent_name, res, dur, role_desc
 
-        # Post-validation gate
-        gate.post_validate(agent_name, result)
+            # Execute step (single or parallel)
+            step_results = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(agents_to_run)) as executor:
+                futures = {executor.submit(run_agent, a): a for a in agents_to_run}
+                for future in concurrent.futures.as_completed(futures):
+                    a_name, res, dur, r_desc = future.result()
+                    if res is not None:
+                        print(f"   ⏱️  {a_name} completed in {dur:.1f}s")
+                        preview = res[:200] + "..." if len(res) > 200 else res
+                        print(f"   📄 [{a_name}] {preview}")
+                        logger.log_run(i, a_name, r_desc, res[:500], dur)
+                        step_results.append((a_name, res, r_desc))
 
-        # Log the run
-        logger.log_run(i, agent_name, role_desc, result[:500], duration)
+            # Process handoffs
+            for a_name, res, r_desc in step_results:
+                state_mgr.set_agent_status(a_name, "delivering")
+                # Assuming next step agents as handoff targets
+                if i < len(pipeline):
+                    next_step = pipeline[i]
+                    next_agents = next_step if isinstance(next_step, list) else [next_step]
+                    for next_agent in next_agents:
+                        handoff = {
+                            "from": a_name,
+                            "to": next_agent,
+                            "message": f"Completed: {r_desc[:80]}",
+                            "completedAt": datetime.now(timezone.utc).isoformat(),
+                        }
+                        state_mgr.write_state(
+                            step_label=f"Handoff: {a_name} → {next_agent}",
+                            handoff=handoff,
+                        )
+                        logger.log_memory(f"Handoff {a_name}→{next_agent}", res[:200])
 
-        # Update agent status and create handoff context
-        state_mgr.set_agent_status(agent_name, "delivering")
-        if i < len(pipeline):
-            next_agent = pipeline[i]
-            handoff = {
-                "from": agent_name,
-                "to": next_agent,
-                "message": f"Completed: {role_desc[:80]}",
-                "completedAt": datetime.now(timezone.utc).isoformat(),
-            }
-            state_mgr.write_state(
-                step_label=f"Handoff: {agent_name} → {next_agent}",
-                handoff=handoff,
-            )
-            logger.log_memory(f"Handoff {agent_name}→{next_agent}", result[:200])
+                state_mgr.set_agent_status(a_name, "done")
+                step_context += f"\n[{a_name}]: {res[:300]}\n"
 
-        state_mgr.set_agent_status(agent_name, "done")
-        state_mgr.write_state(step_label=f"Completed: {agent_name}")
-        step_context += f"\n[{agent_name}]: {result[:300]}\n"
+            state_mgr.write_state(step_label=f"Completed Phase {i}")
 
-        # Check for checkpoints
-        checkpoint_idx = i - 1
-        if checkpoint_idx < len(checkpoints):
-            checkpoint_desc = checkpoints[checkpoint_idx]
-            print(f"\n   🔒 CHECKPOINT: {checkpoint_desc}")
-            logger.log_checkpoint(i, checkpoint_desc)
-            state_mgr.write_state(status="checkpoint", step_label=f"Checkpoint: {checkpoint_desc}")
+            # Check for checkpoints
+            checkpoint_idx = i - 1
+            if checkpoint_idx < len(checkpoints):
+                checkpoint_desc = checkpoints[checkpoint_idx]
+                print(f"\n   🔒 CHECKPOINT: {checkpoint_desc}")
+                logger.log_checkpoint(i, checkpoint_desc)
+                state_mgr.write_state(status="checkpoint", step_label=f"Checkpoint: {checkpoint_desc}")
 
-            if not dry_run:
-                try:
-                    approval = input("   ➡️  Approve and continue? [Y/n]: ").strip().lower()
-                    if approval == "n":
-                        print("   ❌ Pipeline halted by user.")
-                        logger.log_run(i, "SYSTEM", "User halt", "Pipeline stopped at checkpoint")
-                        return
-                except EOFError:
-                    pass  # Non-interactive mode — auto-approve
+                if not dry_run:
+                    try:
+                        approval = input("   ➡️  Approve and continue? [Y/n]: ").strip().lower()
+                        if approval == "n":
+                            print("   ❌ Pipeline halted by user.")
+                            logger.log_run(i, "SYSTEM", "User halt", "Pipeline stopped at checkpoint")
+                            return
+                    except EOFError:
+                        pass  # Non-interactive mode — auto-approve
 
-        time.sleep(0.3)  # Brief pause for dashboard animation
+            time.sleep(0.3)  # Brief pause for dashboard animation
+
+    except KeyboardInterrupt:
+        print("\n   ❌ Pipeline interrupted by user.")
+        logger.log_run(i, "SYSTEM", "User interrupt", "Pipeline stopped forcibly")
+    finally:
+        # In case we exited early or crashed, clean up explicitly
+        # But if it just completed normally, `state_mgr.complete()` will be called.
+        pass
 
     # Finalize
     state_mgr.complete()
