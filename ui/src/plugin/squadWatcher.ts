@@ -201,9 +201,9 @@ export function squadWatcherPlugin(): Plugin {
 
               const cp = require("node:child_process");
               const openminionsRoot = path.resolve(process.cwd(), "..");
-              const pyCommand = `python3 bin/skill_discovery.py generate-team --intent "${intent.replace(/"/g, '\\"')}" --output-dir data/squads`;
               
-              cp.exec(pyCommand, { cwd: openminionsRoot }, (error: any, stdout: string, stderr: string) => {
+              // lgtm [js/incomplete-sanitization]
+              cp.execFile("python3", ["bin/skill_discovery.py", "generate-team", "--intent", intent, "--output-dir", "data/squads"], { cwd: openminionsRoot }, (error: any, stdout: string, stderr: string) => {
                 if (error) {
                   res.writeHead(500);
                   res.end(JSON.stringify({ error: stderr || stdout || error.message }));
@@ -245,9 +245,8 @@ export function squadWatcherPlugin(): Plugin {
             const cp = require("node:child_process");
             const agiPath = process.env.AGI_PATH || path.resolve(process.cwd(), "..", "..", "agi");
             const mmPath = path.join(agiPath, "execution", "memory_manager.py");
-            const pyCommand = `python3 "${mmPath}" retrieve --query "" --project "${squadName}" --limit 20`;
             
-            cp.exec(pyCommand, (error: any, stdout: string, stderr: string) => {
+            cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--limit", "20"], (error: any, stdout: string, stderr: string) => {
               // Extract valid JSON from stdout even if process exited with non-zero
               let parsedJson = null;
               try {

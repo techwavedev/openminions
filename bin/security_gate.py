@@ -237,8 +237,7 @@ def main():
             for line_num, pattern_name, line_preview in findings:
                 secret_count += 1
                 issues.append(
-                    f"🔑 {filepath_str}:{line_num} — {pattern_name}\n"
-                    f"     {line_preview}"
+                    f"🔑 {filepath_str}:{line_num} — {pattern_name}"
                 )
 
     # Report
@@ -249,11 +248,11 @@ def main():
     else:
         print(f"❌ {len(issues)} security issue(s) found:\n")
         for issue in issues:
-            print(f"  {issue}")
+            print(f"  {issue}")  # lgtm [py/clear-text-logging-sensitive-data]
 
         if secret_count > 0:
             print(f"\n  🔑 {secret_count} potential secret(s) detected in code")
-            print("     Remove them or add files to .gitignore before pushing")
+            print("     Remove them or add files to .gitignore before pushing")  # lgtm [py/clear-text-logging-sensitive-data]
 
         if forbidden:
             print(f"\n  🚫 {len(forbidden)} forbidden file(s) are tracked")
