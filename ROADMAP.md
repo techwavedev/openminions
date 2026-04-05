@@ -71,7 +71,7 @@
 
 - [x] `npx openminions init` — one-command project scaffolding *(completed by Copilot — Issue #41)*
 - [x] Published to npm as `@techwavedev/openminions` *(completed by Copilot — Issue #42)*
-- [ ] Community scenario marketplace (submit/discover scenarios)
+- [x] Community scenario marketplace (submit/discover scenarios) *(completed by Copilot — Issue #44)*
 - [x] Plugin system — third-party skill integration *(completed by Copilot — Issue #43)*
 - [x] API server mode — REST/WebSocket API for external integrations *(completed by Copilot — Issue #39)*
 - [x] Docker support — `docker-compose up` for full stack *(completed by Copilot — Issue #40)*
