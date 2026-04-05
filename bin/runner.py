@@ -316,13 +316,14 @@ class ValidationGate:
         """Validate after execution. Returns True if output looks correct."""
         if not result or result.strip() == "":
             print(f"⚠️  Post-gate warning: {agent_name} produced empty output")
-            return True  # Empty output is a warning, not a block
+            return False  # Empty output is an error
 
         # Check for error indicators
-        error_indicators = ["Traceback", "FATAL", "CRITICAL", "panic:"]
+        error_indicators = ["Traceback", "FATAL", "CRITICAL", "panic:", "[TIMEOUT", "[ERROR"]
         for indicator in error_indicators:
             if indicator in result:
                 print(f"⚠️  Post-gate warning: {agent_name} output contains '{indicator}'")
+                return False
 
         print(f"✅ Post-gate passed for {agent_name}")
         return True
@@ -538,42 +539,64 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
             print(f"\n📍 Step {i}/{len(pipeline)}: {step_label}")
             state_mgr.advance_step(label=step_label)
 
-            def run_agent(agent_name):
-                role_config = roles.get(agent_name, {"name": agent_name, "role": "general", "tools": []})
+            def run_agent(agent_name, role_config=None, is_fallback=False):
+                if not role_config:
+                    role_config = roles.get(agent_name, {"name": agent_name, "role": "general", "tools": []})
+                
                 tools = role_config.get("tools", [])
                 role_desc = role_config.get("role", "")
+                max_retries = role_config.get("retries", 2)
+                fallback = role_config.get("fallback", None)
+                res, dur = None, 0
                 
-                print(f"   [Thread] Starting {agent_name} - Role: {role_desc}")
-                
-                # Pre-validation gate
-                if not gate.pre_validate(agent_name, tools, role_desc):
-                    logger.log_run(i, agent_name, role_desc, "BLOCKED by pre-validation gate")
-                    state_mgr.set_agent_status(agent_name, "checkpoint")
-                    state_mgr.write_state(status="checkpoint", step_label=f"BLOCKED: {agent_name}")
-                    print(f"   🚫 Skipped {agent_name} (blocked by security gate)")
-                    return agent_name, None, 0, role_desc
+                for attempt in range(max_retries + 1):
+                    attempt_str = f" [Attempt {attempt+1}]" if attempt > 0 else ""
+                    print(f"   [Thread] Starting {agent_name}{attempt_str} - Role: {role_desc}")
+                    
+                    # Pre-validation gate
+                    if not gate.pre_validate(agent_name, tools, role_desc):
+                        logger.log_run(i, agent_name, role_desc, "BLOCKED by pre-validation gate")
+                        if not is_fallback:
+                            state_mgr.set_agent_status(agent_name, "checkpoint")
+                            state_mgr.write_state(status="checkpoint", step_label=f"BLOCKED: {agent_name}")
+                        print(f"   🚫 Skipped {agent_name} (blocked by security gate)")
+                        return agent_name, None, 0, role_desc
 
-                state_mgr.set_agent_status(agent_name, "working")
-                # write state just for the first agent or occasionally
-                state_mgr.write_state(step_label=f"{agent_name}: {role_desc[:50]}")
+                    if not is_fallback:
+                        state_mgr.set_agent_status(agent_name, "working")
+                        # write state just for the first agent or occasionally
+                        state_mgr.write_state(step_label=f"{agent_name}: {role_desc[:50]}")
 
-                if dry_run:
-                    res = f"[DRY RUN] Would execute {agent_name} with tools: {', '.join(tools)}"
-                    dur = 0.0
-                    print(f"   🔸 {res}")
-                    return agent_name, res, dur, role_desc
+                    if dry_run:
+                        res = f"[DRY RUN] Would execute {agent_name} with tools: {', '.join(tools)}"
+                        dur = 0.0
+                        print(f"   🔸 {res}")
+                        return agent_name, res, dur, role_desc
+                    
+                    # Execute
+                    res, dur = execute_agent_step(
+                        agent_config=role_config,
+                        intent=intent,
+                        agi_path=agi_path,
+                        step_context=step_context,
+                        message_bus=message_bus
+                    )
+                    
+                    # Post-validation gate
+                    if gate.post_validate(agent_name, res):
+                        return agent_name, res, dur, role_desc
+                    else:
+                        print(f"   ⚠️  Agent {agent_name} failed validation. Retrying...")
                 
-                # Execute
-                res, dur = execute_agent_step(
-                    agent_config=role_config,
-                    intent=intent,
-                    agi_path=agi_path,
-                    step_context=step_context,
-                    message_bus=message_bus
-                )
+                # Over retries, engaging fallback
+                if fallback and not is_fallback:
+                    print(f"   🔄 All retries exhausted for {agent_name}. Engaging fallback agent: {fallback}")
+                    fallback_config = roles.get(fallback, {"name": fallback, "role": f"Fallback for {agent_name}", "tools": []})
+                    state_mgr.write_state(step_label=f"Fallback: {fallback}")
+                    # Recursively run the fallback (it has its own retry loop if we didn't block it, but `is_fallback=True` prevents infinite fallback chains)
+                    return run_agent(fallback, role_config=fallback_config, is_fallback=True)
                 
-                # Post-validation gate
-                gate.post_validate(agent_name, res)
+                # Give up
                 return agent_name, res, dur, role_desc
 
             # Execute step (single or parallel)
