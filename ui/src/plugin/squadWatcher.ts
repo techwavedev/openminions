@@ -239,6 +239,43 @@ export function squadWatcherPlugin(): Plugin {
           return;
         }
 
+        if (req.url && req.url.startsWith("/api/history/") && req.method === "GET") {
+          const squadName = req.url.split("/api/history/")[1];
+          try {
+            const cp = require("node:child_process");
+            const agiPath = process.env.AGI_PATH || path.resolve(process.cwd(), "..", "..", "agi");
+            const mmPath = path.join(agiPath, "execution", "memory_manager.py");
+            const pyCommand = `python3 "${mmPath}" retrieve --query "" --project "${squadName}" --limit 20`;
+            
+            cp.exec(pyCommand, (error: any, stdout: string, stderr: string) => {
+              if (error) {
+                console.error("[history api error]", stderr || error);
+                
+                // Fallback to local memories.md if Qdrant isn't ready
+                const memPath = path.join(squadsDir, squadName, "memories.md");
+                if (fs.existsSync(memPath)) {
+                   const content = fs.readFileSync(memPath, "utf-8");
+                   res.setHeader("Content-Type", "application/json");
+                   res.end(JSON.stringify({
+                     results: [{ id: "local", type: "fallback", content: content, created_at: new Date().toISOString() }]
+                   }));
+                   return;
+                }
+
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: stderr || stdout || error.message }));
+                return;
+              }
+              res.setHeader("Content-Type", "application/json");
+              res.end(stdout);
+            });
+          } catch (err: any) {
+             res.writeHead(500);
+             res.end(JSON.stringify({ error: "Server error" }));
+          }
+          return;
+        }
+
         next();
       });
 

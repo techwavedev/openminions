@@ -3,11 +3,12 @@ import { useSquadSocket } from "@/hooks/useSquadSocket";
 import { SquadSelector } from "@/components/SquadSelector";
 import { PhaserGame } from "@/office/PhaserGame";
 import { StatusBar } from "@/components/StatusBar";
-import { Bot, Activity, Map, Settings, PlusCircle } from "lucide-react";
+import { Bot, Activity, Map, Settings, PlusCircle, History } from "lucide-react";
 
 import { SquadBuilder } from "@/pages/SquadBuilder";
-import { LogsPanel } from "@/components/LogsPanel";
 import { ProcessMap } from "@/pages/ProcessMap";
+import { SquadHistory } from "@/pages/SquadHistory";
+import { LogsPanel } from "@/components/LogsPanel";
 
 export function App() {
   useSquadSocket();
@@ -32,6 +33,7 @@ export function App() {
             { id: "overview", icon: Activity, label: "Live Overview" },
             { id: "builder", icon: PlusCircle, label: "Squad Builder" },
             { id: "map", icon: Map, label: "Process Map" },
+            { id: "history", icon: History, label: "History" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -73,6 +75,8 @@ export function App() {
               <SquadBuilder />
             ) : activeTab === "map" ? (
               <ProcessMap />
+            ) : activeTab === "history" ? (
+              <SquadHistory />
             ) : (
               <>
                {/* Glow effect behind phaser */}
