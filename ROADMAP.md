@@ -69,7 +69,7 @@
 
 **Status: 🔄 In Progress**
 
-- [ ] `npx openminions init` — one-command project scaffolding
+- [x] `npx openminions init` — one-command project scaffolding *(completed by Copilot — Issue #41)*
 - [ ] Published to npm as `@techwavedev/openminions`
 - [ ] Community scenario marketplace (submit/discover scenarios)
 - [ ] Plugin system — third-party skill integration
