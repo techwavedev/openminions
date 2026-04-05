@@ -67,7 +67,7 @@
 
 ## v0.5.0 — Ecosystem & Distribution
 
-**Status: 🔄 In Progress**
+**Status: 🟢 Completed**
 
 - [x] `npx openminions init` — one-command project scaffolding *(completed by Copilot — Issue #41)*
 - [x] Published to npm as `@techwavedev/openminions` *(completed by Copilot — Issue #42)*
@@ -78,9 +78,9 @@
 
 ---
 
-## v1.0.0 — Production Release
+## v1.0.0 — The AGI Horizon (TBD)
 
-**Status: 📋 Planned**
+**Status: 🔄 In Progress**
 
 - [ ] Full test suite (unit + integration + e2e)
 - [ ] Performance benchmarks (token usage, execution time per scenario)
