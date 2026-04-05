@@ -39,7 +39,7 @@ export function LogsPanel() {
   if (!selectedSquad) return null;
 
   return (
-    <div className="absolute top-4 right-4 bottom-4 w-[400px] bg-[#050505]/90 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-2xl z-20">
+    <div className="absolute top-4 right-4 bottom-4 w-[calc(100%-2rem)] max-w-[400px] bg-[#050505]/90 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-2xl z-20">
       <div className="h-10 px-4 border-b border-white/5 flex items-center gap-2 bg-white/5">
         <Terminal size={14} className="text-secondary" />
         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">

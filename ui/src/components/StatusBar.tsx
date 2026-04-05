@@ -65,7 +65,7 @@ export function StatusBar() {
 
         {/* Handoff Message */}
         {state.handoff && (
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden hidden md:block">
             <div className="flex items-center gap-2 text-xs">
               <span className="text-primary font-bold">{state.handoff.from}</span>
               <span className="text-gray-600">→</span>
