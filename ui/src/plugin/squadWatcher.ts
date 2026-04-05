@@ -220,6 +220,25 @@ export function squadWatcherPlugin(): Plugin {
           return;
         }
 
+        if (req.url && req.url.startsWith("/api/logs/") && req.method === "GET") {
+          const squadName = req.url.split("/api/logs/")[1];
+          const logPath = path.join(squadsDir, squadName, "runs.md");
+          try {
+            if (fs.existsSync(logPath)) {
+              const content = await fsp.readFile(logPath, "utf-8");
+              res.setHeader("Content-Type", "text/plain");
+              res.end(content);
+            } else {
+              res.setHeader("Content-Type", "text/plain");
+              res.end("No run logs found for this squad yet.");
+            }
+          } catch {
+            res.writeHead(500);
+            res.end("Internal Server Error reading logs");
+          }
+          return;
+        }
+
         next();
       });
 

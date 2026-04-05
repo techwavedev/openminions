@@ -6,6 +6,7 @@ import { StatusBar } from "@/components/StatusBar";
 import { Bot, Activity, Map, Settings, PlusCircle } from "lucide-react";
 
 import { SquadBuilder } from "@/pages/SquadBuilder";
+import { LogsPanel } from "@/components/LogsPanel";
 
 export function App() {
   useSquadSocket();
@@ -74,6 +75,7 @@ export function App() {
                {/* Glow effect behind phaser */}
                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-secondary/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-secondary/20 transition-all duration-700"></div>
                <PhaserGame />
+               <LogsPanel />
               </>
             )}
           </div>
