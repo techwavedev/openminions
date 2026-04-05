@@ -210,6 +210,49 @@ class MemoryLogger:
 
 
 # ---------------------------------------------------------------------------
+# Inter-Agent Message Bus
+# ---------------------------------------------------------------------------
+class MessageBus:
+    """Provides a shared pub/sub communication channel outside the formal handoff pipeline."""
+
+    def __init__(self, squad_dir: Path):
+        self.bus_path = squad_dir / "channels.json"
+        self._lock = threading.Lock()
+        self.channels = {"general": []}
+        self.save()
+
+    def save(self):
+        with self._lock:
+            self.bus_path.write_text(json.dumps(self.channels, indent=2))
+
+    def load(self):
+        with self._lock:
+            if self.bus_path.exists():
+                try:
+                    self.channels = json.loads(self.bus_path.read_text())
+                except json.JSONDecodeError:
+                    pass
+
+    def broadcast(self, sender: str, message: str, channel: str = "general"):
+        self.load()
+        msg_obj = {
+            "from": sender,
+            "message": message,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        if channel not in self.channels:
+            self.channels[channel] = []
+        self.channels[channel].append(msg_obj)
+        self.save()
+
+    def get_context(self, channel: str = "general", limit: int = 5) -> str:
+        self.load()
+        msgs = self.channels.get(channel, [])[-limit:]
+        if not msgs:
+            return ""
+        return "\n".join([f"[{m['timestamp']}] {m['from']}: {m['message']}" for m in msgs])
+
+# ---------------------------------------------------------------------------
 # Skill Dependency Resolution
 # ---------------------------------------------------------------------------
 class SkillResolver:
@@ -289,7 +332,7 @@ class ValidationGate:
 # Pipeline Executor
 # ---------------------------------------------------------------------------
 def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
-                       step_context: str = "") -> tuple[str, float]:
+                       step_context: str = "", message_bus: MessageBus | None = None) -> tuple[str, float]:
     """
     Execute a single agent step using AGI's local micro agent.
     Returns (result_text, duration_seconds).
@@ -303,8 +346,15 @@ def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
         f"Your available tools: {', '.join(tools)}.\n"
         f"The squad's overall intent: {intent}\n"
     )
+    
+    if message_bus:
+        channel_ctx = message_bus.get_context()
+        if channel_ctx:
+            prompt += f"\n[Live Comm Channel 'general']\n{channel_ctx}\n"
+
     if step_context:
-        prompt += f"Context from previous steps:\n{step_context}\n"
+        prompt += f"\nContext from previous steps:\n{step_context}\n"
+        
     prompt += f"\nExecute your role and produce your deliverable. Be concise and actionable."
 
     micro_agent = agi_path / "execution" / "local_micro_agent.py"
@@ -319,6 +369,14 @@ def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
         output = result.stdout.strip()
         if result.returncode != 0 and result.stderr:
             output += f"\n[stderr: {result.stderr.strip()}]"
+            
+        # Optional: heuristic to let agent broadcast if output includes a specific format
+        if message_bus and "BROADCAST:" in output:
+            for line in output.splitlines():
+                if line.startswith("BROADCAST:"):
+                    msg = line.replace("BROADCAST:", "").strip()
+                    message_bus.broadcast(agent_name, msg)
+                    
         return output, duration
     except subprocess.TimeoutExpired:
         return f"[TIMEOUT after 180s for {agent_name}]", time.time() - start
@@ -424,6 +482,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     state_mgr = SquadStateManager(squad_dir, config)
     logger = MemoryLogger(squad_dir)
     gate = ValidationGate()
+    message_bus = MessageBus(squad_dir)
 
     state_mgr.write_state(status="running", step_label="Initializing pipeline")
     logger.log_memory("Squad Intent", intent or config.get("description", "N/A"))
@@ -505,7 +564,13 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
                     return agent_name, res, dur, role_desc
                 
                 # Execute
-                res, dur = execute_agent_step(role_config, intent, agi_path, step_context)
+                res, dur = execute_agent_step(
+                    agent_config=role_config,
+                    intent=intent,
+                    agi_path=agi_path,
+                    step_context=step_context,
+                    message_bus=message_bus
+                )
                 
                 # Post-validation gate
                 gate.post_validate(agent_name, res)
