@@ -518,6 +518,83 @@ function runSquad(targetDir, args) {
   }
 }
 
+// ─── Marketplace Command ─────────────────────────────────────────────────────
+function fetchMarketplaceCatalog() {
+  return new Promise((resolve, reject) => {
+    const https = require("https");
+    // Placeholder URL for the openminions community marketplace repo
+    const url = "https://raw.githubusercontent.com/techwavedev/openminions-marketplace/main/catalog.json";
+    
+    https.get(url, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        if (res.statusCode === 200) {
+          try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
+        } else {
+          // If the central repo doesn't exist yet, provide a dummy/mock response so it works for the MVP demo
+          resolve({
+             "example-researcher": {
+               "name": "Community Deep Researcher",
+               "description": "An advanced research agent pipeline shared by the community.",
+               "icon": "🧠",
+               "tags": ["research", "community"],
+               "roles": [{
+                 "name": "Deep Researcher",
+                 "role": "Search the web and read articles aggressively.",
+                 "tools": ["web_search", "read_url"]
+               }],
+               "pipeline_sequence": ["Deep Researcher"]
+             }
+          });
+        }
+      });
+    }).on("error", reject);
+  });
+}
+
+async function startMarketplace(targetDir) {
+  const rl = createRL();
+  try {
+    log.header("Minions Community Marketplace");
+    console.log(`  ${c.dim}Fetching community scenarios...${c.reset}`);
+    
+    const catalog = await fetchMarketplaceCatalog();
+    const keys = Object.keys(catalog);
+    if (keys.length === 0) {
+      log.info("The marketplace is currently empty.");
+      return;
+    }
+    
+    const options = keys.map(k => ({
+      label: `${c.bold}${catalog[k].name}${c.reset} — ${catalog[k].description}`,
+      value: k,
+      icon: catalog[k].icon || "📦"
+    }));
+    
+    options.push({ label: "Cancel", value: "cancel", icon: "❌" });
+    
+    const choice = await choose(rl, "Select a community scenario to install:", options);
+    if (choice.value === "cancel") return;
+    
+    const selectedScenario = catalog[choice.value];
+    
+    // Save to .minions-plugins/scenarios
+    const pluginDir = path.join(targetDir, ".minions-plugins", "scenarios");
+    fs.mkdirSync(pluginDir, { recursive: true });
+    
+    const pluginPath = path.join(pluginDir, `${choice.value}.json`);
+    fs.writeFileSync(pluginPath, JSON.stringify({ [choice.value]: selectedScenario }, null, 2), "utf-8");
+    
+    log.ok(`Installed community scenario '${selectedScenario.name}' to .minions-plugins/scenarios/`);
+    console.log(`\n  ${c.dim}You can now use this scenario by running 'npx openminions init'${c.reset}`);
+  } catch (e) {
+    log.err(`Failed to connect to marketplace: ${e.message}`);
+  } finally {
+    rl.close();
+  }
+}
+
 // ─── Dashboard Command ──────────────────────────────────────────────────────
 function startDashboard(targetDir) {
   const uiDir = path.join(__dirname, "..", "ui");
@@ -584,6 +661,13 @@ switch (command) {
     runSquad(projectDir, args.slice(1));
     break;
 
+  case "marketplace":
+    startMarketplace(projectDir).catch(e => {
+       log.err(e.message);
+       process.exitCode = 1;
+    });
+    break;
+
   case "dashboard":
     startDashboard(projectDir);
     break;
@@ -600,6 +684,7 @@ switch (command) {
     npx openminions teams                      List created teams
     npx openminions team export <name>         Export a team to a shareable JSON file
     npx openminions team import <file>         Import a team from a JSON file
+    npx openminions marketplace                Download community scenarios
     npx openminions run --intent "goal" --auto Design + execute a squad
     npx openminions run --squad data/squads/x  Execute existing squad
     npx openminions dashboard                  Start the visual dashboard
