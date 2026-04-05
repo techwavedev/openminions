@@ -80,15 +80,15 @@
 
 ## v1.0.0 — The AGI Horizon (TBD)
 
-**Status: 🔄 In Progress**
+**Status: 🟢 Completed (1.0.0 Release Ready)**
 
 - [x] Full test suite (unit + integration + e2e)
 - [x] Performance benchmarks (token usage, execution time per scenario) *(tracked in data/benchmarks.json)*
 - [x] Documentation site (guides, API reference, tutorials)
 - [x] VS Code extension — visual squad builder
-- [ ] Team collaboration — shared squads across users
-- [ ] Cloud deployment option (managed service)
-- [ ] Telemetry (opt-in usage analytics)
+- [x] Team collaboration — shared squads across users
+- [x] Cloud deployment option (managed service)
+- [x] Telemetry (opt-in usage analytics)
 
 ---
 

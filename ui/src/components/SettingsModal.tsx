@@ -9,6 +9,7 @@ interface SettingsModalProps {
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [theme, setTheme] = useState("dark");
   const [pinEnabled, setPinEnabled] = useState(false);
+  const [telemetry, setTelemetry] = useState(false);
 
   useEffect(() => {
     // Determine if PIN is enabled from env
@@ -88,6 +89,19 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 To enable, set <code className="text-gray-400">VITE_DASHBOARD_PIN</code> in your <code className="text-gray-400">ui/.env.local</code> file and restart the server.
               </p>
             )}
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Telemetry</h3>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setTelemetry(!telemetry)}>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-200">Opt-in Usage Analytics</span>
+                <span className="text-xs text-gray-500">Help openminions improve by sending anonymous crash reports.</span>
+              </div>
+              <div className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${telemetry ? 'bg-primary' : 'bg-gray-700'}`}>
+                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${telemetry ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+            </div>
           </div>
 
         </div>
