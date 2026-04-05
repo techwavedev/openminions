@@ -47,8 +47,8 @@
 - [x] Agent activity log panel (real-time output streaming) *(completed by Copilot — Issue #25)*
 - [x] Squad history viewer (past runs with replay) *(completed by Copilot — Issue #27)*
 - [x] Pipeline visualization (flowchart view) *(completed by Copilot — Issue #26)*
-- [ ] Mobile-responsive layout *(assigned to Copilot)*
-- [ ] Dashboard auth (optional PIN/password gate) *(assigned to Copilot)*
+- [x] Mobile-responsive layout *(completed by Copilot — Issue #29)*
+- [x] Dashboard auth (optional PIN/password gate) *(completed by Copilot — Issue #30)*
 
 ---
 
