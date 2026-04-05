@@ -70,7 +70,13 @@ class SquadStateManager:
         flat = []
         for item in pipeline:
             if isinstance(item, list):
-                flat.extend(item)
+                flat.extend(self._flatten_pipeline(item))
+            elif isinstance(item, dict) and "then" in item:
+                # Add all possible conditional branches to tracking
+                if "then" in item:
+                    flat.extend(self._flatten_pipeline(item["then"]) if isinstance(item["then"], list) else [item["then"]])
+                if "else" in item:
+                    flat.extend(self._flatten_pipeline(item["else"]) if isinstance(item["else"], list) else [item["else"]])
             else:
                 flat.append(item)
         return flat
@@ -393,12 +399,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     config = load_squad_config(squad_dir)
     squad_name = config.get("squad_name", squad_dir.name)
     pipeline = config.get("pipeline_sequence", [])
-    flat_pipeline = []
-    for item in pipeline:
-        if isinstance(item, list):
-            flat_pipeline.extend(item)
-        else:
-            flat_pipeline.append(item)
+    flat_pipeline = state_mgr._flatten_pipeline(pipeline)
             
     roles = {r["name"]: r for r in config.get("roles", [])}
     checkpoints = config.get("checkpoints", [])
@@ -437,9 +438,38 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
     else:
         print(f"   ℹ️  No historical context found (new squad or fresh run).")
 
+    # Track outputs for conditional branching
+    agent_outputs = {}
+
     try:
         for i, step in enumerate(pipeline, 1):
-            if isinstance(step, list):
+            if isinstance(step, dict) and "condition" in step:
+                # Conditional branch logic
+                condition = step["condition"]
+                depends_on = condition.get("depends_on", "")
+                contains_str = condition.get("contains", "")
+                
+                print(f"\n📍 Step {i}/{len(pipeline)}: [Conditional Branch] Evaluating {depends_on}")
+                
+                prev_output = agent_outputs.get(depends_on, "")
+                
+                # Default resolve to `then` if true, `else` if false
+                if contains_str and contains_str in prev_output:
+                    print(f"   ✅ Condition met ('{contains_str}' found). Executing 'then' branch...")
+                    agents_to_run = step.get("then", [])
+                else:
+                    print(f"   ❌ Condition NOT met. Executing 'else' branch...")
+                    agents_to_run = step.get("else", [])
+                
+                if not agents_to_run:
+                    print(f"   ℹ️  No agents to run in this branch. Skipping.")
+                    continue
+                
+                if not isinstance(agents_to_run, list):
+                    agents_to_run = [agents_to_run]
+                    
+                step_label = f"Conditional Phase: {', '.join(agents_to_run)}"
+            elif isinstance(step, list):
                 agents_to_run = step
                 step_label = f"Parallel Phase: {', '.join(agents_to_run)}"
             else:
@@ -493,6 +523,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
                         print(f"   📄 [{a_name}] {preview}")
                         logger.log_run(i, a_name, r_desc, res[:500], dur)
                         step_results.append((a_name, res, r_desc))
+                        agent_outputs[a_name] = res  # Global tracking for conditions
 
             # Process handoffs
             for a_name, res, r_desc in step_results:
