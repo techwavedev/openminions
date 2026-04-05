@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "cd ui && npm run dev",
     "build": "cd ui && npm run build",
+    "start": "node bin/server.js",
     "run": "python3 bin/runner.py",
     "architect": "python3 bin/architect_wizard.py",
     "test": "python3 tests/test_dry_run.py",
@@ -29,5 +30,11 @@
     "type": "git",
     "url": "https://github.com/techwavedev/openminions"
   },
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "express": "^5.2.1",
+    "ws": "^8.20.0",
+    "yaml": "^2.8.3"
+  }
 }

@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  openminions:
+    build: .
+    container_name: openminions
+    ports:
+      - "5173:5173"
+    volumes:
+      # Persist squad data and configurations!
+      - ./data:/app/data
+      # Mount the AGI environment into the container explicitly
+      - ../agi:/agi-agent-kit:ro
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+      - AGI_PATH=/agi-agent-kit
+    restart: unless-stopped
