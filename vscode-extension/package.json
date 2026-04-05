@@ -2,7 +2,7 @@
   "name": "openminions-builder",
   "displayName": "Openminions Visual Squad Builder",
   "description": "Visual drag-and-drop tool to construct Openminions squad.json pipelines",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.80.0"
   },
