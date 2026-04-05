@@ -1,6 +1,6 @@
 {
   "name": "openminions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Next-generation multi-agent orchestrator powered by @techwavedev/agi-agent-kit",
   "main": "bin/cli.js",
   "bin": {
