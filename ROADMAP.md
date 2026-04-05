@@ -73,8 +73,8 @@
 - [ ] Published to npm as `@techwavedev/openminions`
 - [ ] Community scenario marketplace (submit/discover scenarios)
 - [ ] Plugin system — third-party skill integration
-- [ ] API server mode — REST/WebSocket API for external integrations
-- [ ] Docker support — `docker-compose up` for full stack
+- [x] API server mode — REST/WebSocket API for external integrations *(completed by Copilot — Issue #39)*
+- [x] Docker support — `docker-compose up` for full stack *(completed by Copilot — Issue #40)*
 
 ---
 
