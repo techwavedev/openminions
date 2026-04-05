@@ -22,20 +22,20 @@
 - [x] Comprehensive `.gitignore` for public repo safety
 - [x] GitHub Actions — CI/CD, secret scanning, dependency review
 - [x] Git pre-push hook auto-install
-- [ ] End-to-end dry-run test *(assigned to Copilot — Issue #5)*
+- [x] End-to-end dry-run test *(assigned to Copilot — Issue #5)*
 
 ---
 
 ## v0.2.0 — Intelligence Layer
 
-**Status: 📋 Planned**
+**Status: 🟢 Completed**
 
-- [ ] Skill auto-discovery — query agi-agent-kit's full skill catalog via Qdrant
-- [ ] Dynamic role generation — Atlas creates custom agent roles from skill metadata
-- [ ] Skill dependency resolution — auto-install required skills per scenario
-- [ ] Agent memory persistence — carry context between squad runs
-- [ ] Squad templates export/import (shareable `.squad.yaml` files)
-- [ ] Scenario builder CLI — `openminions scenario create`
+- [x] Skill auto-discovery — query agi-agent-kit's full skill catalog via Qdrant
+- [x] Dynamic role generation — Atlas creates custom agent roles from skill metadata
+- [x] Skill dependency resolution — auto-install required skills per scenario
+- [x] Agent memory persistence — carry context between squad runs
+- [x] Squad templates export/import (shareable `.squad.yaml` files)
+- [x] Scenario builder CLI — `openminions scenario create`
 
 ---
 
