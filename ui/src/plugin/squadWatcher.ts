@@ -247,6 +247,8 @@ export function squadWatcherPlugin(): Plugin {
             const mmPath = path.join(agiPath, "execution", "memory_manager.py");
             
             cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--top-k", "20"], (error: any, stdout: string, stderr: string) => {
+              if (res.headersSent) return;
+              try {
               // Extract valid JSON from stdout even if process exited with non-zero
               let parsedJson = null;
               try {
@@ -262,7 +264,29 @@ export function squadWatcherPlugin(): Plugin {
 
               if (parsedJson) {
                 res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify(parsedJson));
+                
+                // Map chunks or context_chunks to results array
+                if (parsedJson.chunks) {
+                   res.end(JSON.stringify({
+                     results: parsedJson.chunks.map((c: string, i: number) => ({
+                         id: "chunk-" + i,
+                         type: "memory",
+                         content: c,
+                         created_at: new Date().toISOString()
+                     }))
+                   }));
+                } else if (parsedJson.context_chunks) {
+                   res.end(JSON.stringify({
+                     results: parsedJson.context_chunks.map((c: string, i: number) => ({
+                         id: "chunk-" + i,
+                         type: "memory",
+                         content: c,
+                         created_at: new Date().toISOString()
+                     }))
+                   }));
+                } else {
+                   res.end(JSON.stringify({ results: [] }));
+                }
                 return;
               }
 
@@ -286,6 +310,13 @@ export function squadWatcherPlugin(): Plugin {
               }
               res.setHeader("Content-Type", "application/json");
               res.end(stdout);
+              } catch (e: any) {
+                console.error("[history error]", e);
+                if (!res.headersSent) {
+                   res.writeHead(500);
+                   res.end(JSON.stringify({ error: "Server sync crash" }));
+                }
+              }
             });
           } catch (err: any) {
              console.error("[history api try-catch error]", err);

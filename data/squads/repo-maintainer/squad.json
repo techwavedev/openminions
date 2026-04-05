@@ -1,0 +1,46 @@
+{
+  "squad": {
+    "squad_name": "repo-maintainer",
+    "name": "Repo Maintainer (Dogfood Squad)",
+    "description": "Automated repository maintenance team. Designed to use free local models (GLM-4 Flash / Gemma 4) for repetitive, secure tasks (linting, basic security scanning, formatting) to save cloud tokens.",
+    "icon": "🛡️",
+    "agents": [
+      "SecurityScanner",
+      "LocalReviewer",
+      "DocumentationMaintainer"
+    ],
+    "roles": [
+      {
+        "name": "SecurityScanner",
+        "role": "Monitor dependencies and execute local pre-push security gates (using local-tier LLM for secret extraction validation).",
+        "tools": [
+          "supply-chain-monitor",
+          "qdrant-memory"
+        ]
+      },
+      {
+        "name": "LocalReviewer",
+        "role": "Perform fast, repetitive code reviews and linting directly via local GLM/Gemma models. Blocks passing to cloud if simple syntactical errors exist.",
+        "tools": [
+          "webcrawler"
+        ]
+      },
+      {
+        "name": "DocumentationMaintainer",
+        "role": "Update README, ROADMAP, and CHANGELOG locally without wasting cloud tokens.",
+        "tools": [
+          "documentation"
+        ]
+      }
+    ],
+    "pipeline_sequence": [
+      "SecurityScanner",
+      "LocalReviewer",
+      "DocumentationMaintainer"
+    ],
+    "checkpoints": [
+      "Review security findings before auto-fixing",
+      "Approve documentation changes before committing"
+    ]
+  }
+}

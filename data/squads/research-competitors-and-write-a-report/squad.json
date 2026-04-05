@@ -1,0 +1,48 @@
+{
+  "squad": {
+    "squad_name": "research-competitors-and-write-a-report",
+    "name": "research competitors and write a report",
+    "description": "research competitors and write a report",
+    "icon": "\ud83e\udd16",
+    "agents": [
+      "Researcher",
+      "Writer",
+      "Reviewer"
+    ],
+    "roles": [
+      {
+        "name": "Researcher",
+        "role": "Research the topic from web sources",
+        "tools": [
+          "webcrawler"
+        ],
+        "scripts": []
+      },
+      {
+        "name": "Writer",
+        "role": "Write and organize the final output",
+        "tools": [
+          "documentation"
+        ],
+        "scripts": []
+      },
+      {
+        "name": "Reviewer",
+        "role": "Review quality and validate all outputs",
+        "tools": [
+          "documentation"
+        ],
+        "scripts": []
+      }
+    ],
+    "pipeline_sequence": [
+      "Researcher",
+      "Writer",
+      "Reviewer"
+    ],
+    "checkpoints": [
+      "Review research before proceeding",
+      "Approve final output before delivery"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+squad:
+  code: "repo-maintainer"
+  name: "Repo Maintainer (Dogfood Squad)"
+  description: "Automated repository maintenance team. Designed to use free local models (GLM-4 Flash / Gemma 4) for repetitive, secure tasks (linting, basic security scanning, formatting) to save cloud tokens."
+  agents:
+    - "SecurityScanner"
+    - "LocalReviewer"
+    - "DocumentationMaintainer"
