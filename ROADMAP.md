@@ -58,7 +58,7 @@
 
 - [ ] Parallel agent execution (non-dependent steps run concurrently) *(assigned to Copilot — Issue #8)*
 - [ ] Agent-to-agent communication channels *(assigned to Copilot — Issue #32)*
-- [ ] Conditional pipeline branching (if/else logic in squad.yaml) *(assigned to Copilot — Issue #33)*
+- [x] Conditional pipeline branching (if/else logic in squad.yaml) *(completed by Copilot — Issue #33)*
 - [ ] Error recovery with automatic retry and fallback agents
 - [ ] Resource pool management (token budget tracking per squad)
 - [ ] Execution sandboxing (isolated environments per agent)
