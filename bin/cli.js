@@ -471,16 +471,6 @@ function importTeam(targetDir, sourceFile) {
     
     fs.writeFileSync(path.join(teamDir, "squad.json"), JSON.stringify({ squad }, null, 2), "utf-8");
     
-    // Also write yaml equivalent for components that prefer it
-    const yamlContent = `squad:
-  code: "${squad.squad_name}"
-  name: "${squad.name || squad.squad_name}"
-  description: "${squad.description || ''}"
-  agents:
-${(squad.roles || []).map(r => `    - "${r.name}"`).join("\n")}
-`;
-    fs.writeFileSync(path.join(teamDir, "squad.yaml"), yamlContent, "utf-8");
-    
     log.ok(`Imported team '${squad.squad_name}' into data/squads/`);
   } catch (e) {
     log.err(`Failed to import team: ${e.message}`);
