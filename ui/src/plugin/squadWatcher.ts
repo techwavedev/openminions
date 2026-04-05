@@ -246,7 +246,7 @@ export function squadWatcherPlugin(): Plugin {
             const agiPath = process.env.AGI_PATH || path.resolve(process.cwd(), "..", "..", "agi");
             const mmPath = path.join(agiPath, "execution", "memory_manager.py");
             
-            cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--limit", "20"], (error: any, stdout: string, stderr: string) => {
+            cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--top-k", "20"], (error: any, stdout: string, stderr: string) => {
               // Extract valid JSON from stdout even if process exited with non-zero
               let parsedJson = null;
               try {
@@ -288,8 +288,9 @@ export function squadWatcherPlugin(): Plugin {
               res.end(stdout);
             });
           } catch (err: any) {
+             console.error("[history api try-catch error]", err);
              res.writeHead(500);
-             res.end(JSON.stringify({ error: "Server error" }));
+             res.end(JSON.stringify({ error: "Server error", details: err.message || String(err) }));
           }
           return;
         }

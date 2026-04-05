@@ -189,7 +189,7 @@ const server = http.createServer(async (req, res) => {
       const agiPath = process.env.AGI_PATH || path.resolve(ROOT_DIR, "..", "agi");
       const mmPath = path.join(agiPath, "execution", "memory_manager.py");
       
-      cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--limit", "20"], (error, stdout) => {
+      cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--top-k", "20"], (error, stdout) => {
         let parsedJson = null;
         try {
           if (stdout) {
