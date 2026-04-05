@@ -59,10 +59,12 @@ class SquadStateManager:
         self.squad_name = squad_config.get("squad_name", squad_dir.name)
         self.roles = squad_config.get("roles", [])
         self.pipeline = squad_config.get("pipeline_sequence", [])
+        self.budget_tokens = squad_config.get("budget_tokens", 100000)  # Default 100k tokens
         self.flat_pipeline = self._flatten_pipeline(self.pipeline)
         self.checkpoints = squad_config.get("checkpoints", [])
         self.total_steps = len(self.pipeline)  # count top-level steps (phases)
         self.current_step = 0
+        self.total_tokens_used = 0
         self.started_at = datetime.now(timezone.utc).isoformat()
         self._lock = threading.Lock()
 
@@ -120,6 +122,10 @@ class SquadStateManager:
                 },
                 "agents": self.agents,
                 "handoff": handoff,
+                "metrics": {
+                    "tokens_used": self.total_tokens_used,
+                    "budget": self.budget_tokens,
+                },
                 "startedAt": self.started_at,
                 "updatedAt": datetime.now(timezone.utc).isoformat(),
             }
@@ -140,6 +146,12 @@ class SquadStateManager:
         with self._lock:
             self.current_step += 1
         self.write_state(step_label=label)
+
+    def add_tokens(self, tokens: int):
+        """Add tokens to the usage tracker."""
+        with self._lock:
+            self.total_tokens_used += tokens
+        self.write_state()
 
     def complete(self):
         """Mark the squad as completed."""
@@ -367,22 +379,33 @@ def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
             capture_output=True, text=True, timeout=180,
         )
         duration = time.time() - start
-        output = result.stdout.strip()
+        output_raw = result.stdout.strip()
+        tokens_used = 0
+        output_text = output_raw
+        
+        try:
+            data = json.loads(output_raw)
+            if "response" in data:
+                output_text = data["response"]
+                tokens_used = data.get("metrics", {}).get("total_tokens", 0)
+        except json.JSONDecodeError:
+            pass
+
         if result.returncode != 0 and result.stderr:
-            output += f"\n[stderr: {result.stderr.strip()}]"
+            output_text += f"\n[stderr: {result.stderr.strip()}]"
             
         # Optional: heuristic to let agent broadcast if output includes a specific format
-        if message_bus and "BROADCAST:" in output:
-            for line in output.splitlines():
+        if message_bus and "BROADCAST:" in output_text:
+            for line in output_text.splitlines():
                 if line.startswith("BROADCAST:"):
                     msg = line.replace("BROADCAST:", "").strip()
                     message_bus.broadcast(agent_name, msg)
                     
-        return output, duration
+        return output_text, duration, tokens_used
     except subprocess.TimeoutExpired:
-        return f"[TIMEOUT after 180s for {agent_name}]", time.time() - start
+        return f"[TIMEOUT after 180s for {agent_name}]", time.time() - start, 0
     except Exception as e:
-        return f"[ERROR: {e}]", time.time() - start
+        return f"[ERROR: {e}]", time.time() - start, 0
 
 
 def store_to_qdrant(content: str, memory_type: str, project: str, agi_path: Path,
@@ -547,7 +570,7 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
                 role_desc = role_config.get("role", "")
                 max_retries = role_config.get("retries", 2)
                 fallback = role_config.get("fallback", None)
-                res, dur = None, 0
+                res, dur, tokens_used = None, 0, 0
                 
                 for attempt in range(max_retries + 1):
                     attempt_str = f" [Attempt {attempt+1}]" if attempt > 0 else ""
@@ -574,13 +597,19 @@ def run_pipeline(squad_dir: Path, agi_path: Path, dry_run: bool = False,
                         return agent_name, res, dur, role_desc
                     
                     # Execute
-                    res, dur = execute_agent_step(
+                    res, dur, tokens_used = execute_agent_step(
                         agent_config=role_config,
                         intent=intent,
                         agi_path=agi_path,
                         step_context=step_context,
                         message_bus=message_bus
                     )
+                    
+                    state_mgr.add_tokens(tokens_used)
+                    if state_mgr.total_tokens_used > state_mgr.budget_tokens:
+                        print(f"   🛑 BUDGET EXCEEDED! {state_mgr.total_tokens_used} > {state_mgr.budget_tokens}")
+                        logger.log_memory(f"BUDGET ALARM", f"Used {state_mgr.total_tokens_used} limit {state_mgr.budget_tokens}")
+                        return agent_name, f"[ERROR: Token budget exceeded ({state_mgr.total_tokens_used}/{state_mgr.budget_tokens})]", dur, role_desc
                     
                     # Post-validation gate
                     if gate.post_validate(agent_name, res):
