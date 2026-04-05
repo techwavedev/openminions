@@ -83,7 +83,7 @@
 **Status: 🔄 In Progress**
 
 - [ ] Full test suite (unit + integration + e2e)
-- [ ] Performance benchmarks (token usage, execution time per scenario)
+- [x] Performance benchmarks (token usage, execution time per scenario) *(tracked in data/benchmarks.json)*
 - [ ] Documentation site (guides, API reference, tutorials)
 - [ ] VS Code extension — visual squad builder
 - [ ] Team collaboration — shared squads across users

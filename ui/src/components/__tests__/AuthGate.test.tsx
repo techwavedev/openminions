@@ -1,17 +1,24 @@
 import { render, screen } from '@testing-library/react';
 import { AuthGate } from '../AuthGate';
 import '@testing-library/jest-dom';
-import { beforeEach, describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 describe('AuthGate', () => {
   beforeEach(() => {
-    // Reset any mock/spy if necessary
-    sessionStorage.clear();
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        clear: vi.fn()
+      },
+      writable: true
+    });
+    vi.stubEnv('VITE_DASHBOARD_PIN', '');
   });
 
   it('renders children if authentication is disabled', () => {
     render(
-      <AuthGate isEnabled={false} correctPin="0000">
+      <AuthGate>
         <div data-testid="protected-content">Protected Content</div>
       </AuthGate>
     );
@@ -20,14 +27,14 @@ describe('AuthGate', () => {
   });
 
   it('renders unlock screen if authentication is enabled and not authenticated', () => {
+    vi.stubEnv('VITE_DASHBOARD_PIN', '1234');
     render(
-      <AuthGate isEnabled={true} correctPin="1234">
+      <AuthGate>
         <div data-testid="protected-content">Protected Content</div>
       </AuthGate>
     );
 
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
-    expect(screen.getByText('System Locked')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter Access PIN')).toBeInTheDocument();
+    expect(screen.getByText('SECURE ACCESS')).toBeInTheDocument();
   });
 });

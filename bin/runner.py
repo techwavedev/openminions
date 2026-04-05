@@ -158,6 +158,33 @@ class SquadStateManager:
         for agent in self.agents:
             agent["status"] = "done"
         self.write_state(status="completed", step_label="All steps complete")
+        
+        try:
+            from datetime import datetime
+            
+            benchmark_file = self.squad_dir.parent.parent / "benchmarks.json"
+            benchmark_data = {
+                "squad": self.state.get("squad", "unknown"),
+                "timestamp": datetime.now().isoformat(),
+                "duration_seconds": round(self.state.get("metrics", {}).get("duration", 0), 2),
+                "tokens_used": self.state.get("metrics", {}).get("tokens_used", 0),
+                "step_count": self.state.get("step", {}).get("total", 0)
+            }
+            
+            benchmarks = []
+            if benchmark_file.exists():
+                try:
+                    with open(benchmark_file, "r") as f:
+                        benchmarks = json.load(f)
+                except Exception:
+                    pass
+                    
+            benchmarks.append(benchmark_data)
+            benchmark_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(benchmark_file, "w") as f:
+                json.dump(benchmarks, f, indent=2)
+        except Exception as e:
+            print(f"⚠️  Failed to save benchmark metrics: {e}", file=sys.stderr)
 
     def cleanup(self):
         """Remove state.json (marks squad as inactive in dashboard)."""
