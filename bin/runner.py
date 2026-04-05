@@ -273,6 +273,11 @@ class SkillResolver:
     def __init__(self, agi_path: Path):
         self.agi_path = agi_path
         self.skills_dir = self.agi_path / "skills"
+        # Support for third-party localized plugins
+        self.plugins_dirs = [
+             PROJECT_ROOT / ".minions-plugins" / "skills",
+             Path.cwd() / ".minions-plugins" / "skills"
+        ]
 
     def check_dependencies(self, pipeline: list[str], roles: dict) -> list[str]:
         """Check if all tools required by the squad's agents exist. Returns missing skills."""
@@ -284,12 +289,31 @@ class SkillResolver:
 
         missing_skills = []
         for tool in required_tools:
-            tool_dir = self.skills_dir / tool
-            skill_md = tool_dir / "SKILL.md"
-            if not tool_dir.is_dir() or not skill_md.exists():
+            found = False
+            # Check official AGI
+            if (self.skills_dir / tool / "SKILL.md").exists():
+                found = True
+            else:
+                # Check plugin directories
+                for p_dir in self.plugins_dirs:
+                    if (p_dir / tool / "SKILL.md").exists():
+                        found = True
+                        break
+            
+            if not found:
                 missing_skills.append(tool)
 
         return missing_skills
+
+    def get_skill_content(self, tool: str) -> str:
+        """Fetch the instructional content of a skill from SKILL.md."""
+        if (self.skills_dir / tool / "SKILL.md").exists():
+            return (self.skills_dir / tool / "SKILL.md").read_text(encoding="utf-8")
+        
+        for p_dir in self.plugins_dirs:
+            if (p_dir / tool / "SKILL.md").exists():
+                return (p_dir / tool / "SKILL.md").read_text(encoding="utf-8")
+        return ""
 
     def resolve(self, pipeline: list[str], roles: dict):
         """Validate dependencies and abort gracefully and auto-fix if possible."""
@@ -357,9 +381,19 @@ def execute_agent_step(agent_config: dict, intent: str, agi_path: Path,
 
     prompt = (
         f"You are {agent_name}, a specialized agent with role: {role}.\n"
-        f"Your available tools: {', '.join(tools)}.\n"
-        f"The squad's overall intent: {intent}\n"
+        f"The squad's overall intent: {intent}\n\n"
     )
+    
+    if tools:
+        prompt += "Your available tools and their usage instructions:\n"
+        resolver = SkillResolver(agi_path)
+        for tool in tools:
+            skill_content = resolver.get_skill_content(tool)
+            if skill_content:
+                prompt += f"\n--- {tool.upper()} INSTRUCTIONS ---\n{skill_content}\n"
+            else:
+                prompt += f"\n- {tool}\n"
+
     
     if message_bus:
         channel_ctx = message_bus.get_context()

@@ -122,11 +122,35 @@ const IDES = [
 // ─── Scenarios ───────────────────────────────────────────────────────────────
 function loadScenarios() {
   const catalogPath = path.join(__dirname, "..", "scenarios", "catalog.json");
+  let scenarios = {};
   try {
-    return JSON.parse(fs.readFileSync(catalogPath, "utf-8"));
-  } catch {
-    return {};
+    scenarios = JSON.parse(fs.readFileSync(catalogPath, "utf-8"));
+  } catch {}
+
+  // Scan plugins
+  const projectRoot = path.resolve(__dirname, "..");
+  const pluginPacks = [
+    path.join(projectRoot, ".minions-plugins", "scenarios"),
+    path.join(process.cwd(), ".minions-plugins", "scenarios")
+  ];
+  
+  for (const packDir of pluginPacks) {
+    if (fs.existsSync(packDir)) {
+      try {
+        const entries = fs.readdirSync(packDir, { withFileTypes: true });
+        for (const entry of entries) {
+           if (entry.isFile() && entry.name.endsWith(".json")) {
+             try {
+               const pluginScenarios = JSON.parse(fs.readFileSync(path.join(packDir, entry.name), "utf-8"));
+               scenarios = { ...scenarios, ...pluginScenarios };
+             } catch {}
+           }
+        }
+      } catch {}
+    }
   }
+
+  return scenarios;
 }
 
 // ─── IDE Template Generation ─────────────────────────────────────────────────
