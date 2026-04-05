@@ -326,8 +326,8 @@ async function init(targetDir) {
       console.log(`\n  ${t("teamCreating")}`);
 
       try {
-        const { execFileSync } = require("child_process");
-        execFileSync(
+        const { spawnSync } = require("child_process");
+        spawnSync(
           "python3",
           [path.join(__dirname, "architect_wizard.py"), "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
           { stdio: "inherit", cwd: targetDir }
@@ -410,8 +410,8 @@ async function createScenario(targetDir, intentArg) {
     
     console.log(`\n  ${t("teamCreating")}`);
     try {
-      const { execFileSync } = require("child_process");
-      execFileSync(
+      const { spawnSync } = require("child_process");
+      spawnSync(
         "python3",
         [path.join(__dirname, "skill_discovery.py"), "generate-team", "--intent", intent.trim(), "--output-dir", path.join(targetDir, "data", "squads")],
         { stdio: "inherit", cwd: targetDir }
@@ -508,11 +508,10 @@ function importTeam(targetDir, sourceFile) {
 // ─── Run Command ─────────────────────────────────────────────────────────────
 function runSquad(targetDir, args) {
   const runnerPath = path.join(__dirname, "runner.py");
-  const { execFileSync } = require("child_process");
+  const { spawnSync } = require("child_process");
 
   try {
-    // lgtm [js/shell-command-injection-from-environment]
-    execFileSync("python3", [runnerPath, ...args], { stdio: "inherit", cwd: targetDir });
+    spawnSync("python3", [runnerPath, ...args], { stdio: "inherit", cwd: targetDir });
   } catch (e) {
     process.exitCode = 1;
   }

@@ -7,6 +7,7 @@ import fsp from "node:fs/promises";
 import { watch as chokidarWatch } from "chokidar";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
+import { execFile } from "node:child_process";
 import type { SquadInfo, SquadState, WsMessage } from "../types/state";
 
 function resolveSquadsDir(): string {
@@ -199,11 +200,9 @@ export function squadWatcherPlugin(): Plugin {
                 return;
               }
 
-              const cp = require("node:child_process");
               const openminionsRoot = path.resolve(process.cwd(), "..");
               
-              // lgtm [js/incomplete-sanitization]
-              cp.execFile("python3", ["bin/skill_discovery.py", "generate-team", "--intent", intent, "--output-dir", "data/squads"], { cwd: openminionsRoot }, (error: any, stdout: string, stderr: string) => {
+              execFile("python3", ["bin/skill_discovery.py", "generate-team", "--intent", intent, "--output-dir", "data/squads"], { cwd: openminionsRoot }, (error: any, stdout: string, stderr: string) => {
                 if (error) {
                   res.writeHead(500);
                   res.end(JSON.stringify({ error: stderr || stdout || error.message }));
@@ -242,11 +241,10 @@ export function squadWatcherPlugin(): Plugin {
         if (req.url && req.url.startsWith("/api/history/") && req.method === "GET") {
           const squadName = req.url.split("/api/history/")[1];
           try {
-            const cp = require("node:child_process");
             const agiPath = process.env.AGI_PATH || path.resolve(process.cwd(), "..", "..", "agi");
             const mmPath = path.join(agiPath, "execution", "memory_manager.py");
             
-            cp.execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--top-k", "20"], (error: any, stdout: string, stderr: string) => {
+            execFile("python3", [mmPath, "retrieve", "--query", "", "--project", squadName, "--top-k", "20"], (error: any, stdout: string, stderr: string) => {
               if (res.headersSent) return;
               try {
               // Extract valid JSON from stdout even if process exited with non-zero
@@ -262,7 +260,13 @@ export function squadWatcherPlugin(): Plugin {
                 }
               } catch (e) {}
 
-              if (parsedJson) {
+              const hasQdrantResults = parsedJson && (
+                 (parsedJson.chunks && parsedJson.chunks.length > 0) || 
+                 (parsedJson.context_chunks && parsedJson.context_chunks.length > 0) ||
+                 (Array.isArray(parsedJson) && parsedJson.length > 0)
+              );
+
+              if (hasQdrantResults) {
                 res.setHeader("Content-Type", "application/json");
                 
                 // Map chunks or context_chunks to results array
@@ -285,31 +289,25 @@ export function squadWatcherPlugin(): Plugin {
                      }))
                    }));
                 } else {
-                   res.end(JSON.stringify({ results: [] }));
+                   res.end(JSON.stringify(parsedJson));
                 }
                 return;
               }
 
-              if (error) {
-                console.error("[history api error]", stderr || error);
-                
-                // Fallback to local memories.md if Qdrant isn't ready or no results
-                const memPath = path.join(squadsDir, squadName, "memories.md");
-                if (fs.existsSync(memPath)) {
-                   const content = fs.readFileSync(memPath, "utf-8");
-                   res.setHeader("Content-Type", "application/json");
-                   res.end(JSON.stringify({
-                     results: [{ id: "local", type: "fallback", content: content, created_at: new Date().toISOString() }]
-                   }));
-                   return;
-                }
-
-                res.setHeader("Content-Type", "application/json");
-                res.end(JSON.stringify({ results: [] }));
-                return;
+              // Fallback to local memories.md if Qdrant has no results
+              const memPath = path.join(squadsDir, squadName, "memories.md");
+              if (fs.existsSync(memPath)) {
+                 const content = fs.readFileSync(memPath, "utf-8");
+                 res.setHeader("Content-Type", "application/json");
+                 res.end(JSON.stringify({
+                   results: [{ id: "local", type: "fallback", content: content, created_at: new Date().toISOString() }]
+                 }));
+                 return;
               }
+
+              // Nothing found anywhere
               res.setHeader("Content-Type", "application/json");
-              res.end(stdout);
+              res.end(JSON.stringify({ results: [] }));
               } catch (e: any) {
                 console.error("[history error]", e);
                 if (!res.headersSent) {

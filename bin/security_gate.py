@@ -130,7 +130,8 @@ def scan_file_for_secrets(filepath: Path) -> list[tuple[int, str, str]]:
                     # Skip regex pattern definitions (the scanner's own patterns)
                     if "r'" in line or 'r"' in line:
                         continue
-                    findings.append((line_num, name, line.strip()[:100]))
+                    # We intentionally DO NOT return the line content to avoid printing clear-text secrets in CI logs
+                    findings.append((line_num, name))
     except Exception:
         pass
 
@@ -234,7 +235,7 @@ def main():
         findings = scan_file_for_secrets(filepath)
         if findings:
             all_clean = False
-            for line_num, pattern_name, line_preview in findings:
+            for line_num, pattern_name in findings:
                 secret_count += 1
                 issues.append(
                     f"🔑 {filepath_str}:{line_num} — {pattern_name}"
@@ -248,11 +249,11 @@ def main():
     else:
         print(f"❌ {len(issues)} security issue(s) found:\n")
         for issue in issues:
-            print(f"  {issue}")  # lgtm [py/clear-text-logging-sensitive-data]
+            print(f"  {issue}")
 
         if secret_count > 0:
             print(f"\n  🔑 {secret_count} potential secret(s) detected in code")
-            print("     Remove them or add files to .gitignore before pushing")  # lgtm [py/clear-text-logging-sensitive-data]
+            print("     Remove them or add files to .gitignore before pushing")
 
         if forbidden:
             print(f"\n  🚫 {len(forbidden)} forbidden file(s) are tracked")

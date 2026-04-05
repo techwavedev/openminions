@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.2",
@@ -17,17 +18,21 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.5.2",
     "autoprefixer": "^10.4.27",
     "chokidar": "^4.0.3",
+    "jsdom": "^29.0.1",
     "lucide-react": "^1.7.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
+    "vitest": "^4.1.2",
     "ws": "^8.18.1"
   }
 }
