@@ -43,12 +43,12 @@
 
 **Status: 🔄 In Progress**
 
-- [ ] Dashboard redesign — premium dark theme with glassmorphism *(assigned to Copilot — Issue #7)*
-- [ ] Agent activity log panel (real-time output streaming)
-- [ ] Squad history viewer (past runs with replay)
-- [ ] Pipeline visualization (flowchart view)
-- [ ] Mobile-responsive layout
-- [ ] Dashboard auth (optional PIN/password gate)
+- [x] Dashboard redesign — premium dark theme with glassmorphism *(assigned to Copilot — Issue #7)*
+- [x] Agent activity log panel (real-time output streaming) *(completed by Copilot — Issue #25)*
+- [ ] Squad history viewer (past runs with replay) *(assigned to Copilot — Issue #27)*
+- [x] Pipeline visualization (flowchart view) *(completed by Copilot — Issue #26)*
+- [ ] Mobile-responsive layout *(assigned to Copilot)*
+- [ ] Dashboard auth (optional PIN/password gate) *(assigned to Copilot)*
 
 ---
 

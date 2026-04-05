@@ -7,6 +7,7 @@ import { Bot, Activity, Map, Settings, PlusCircle } from "lucide-react";
 
 import { SquadBuilder } from "@/pages/SquadBuilder";
 import { LogsPanel } from "@/components/LogsPanel";
+import { ProcessMap } from "@/pages/ProcessMap";
 
 export function App() {
   useSquadSocket();
@@ -70,6 +71,8 @@ export function App() {
           <div className="glass-panel flex-1 overflow-hidden relative group">
             {activeTab === "builder" ? (
               <SquadBuilder />
+            ) : activeTab === "map" ? (
+              <ProcessMap />
             ) : (
               <>
                {/* Glow effect behind phaser */}
